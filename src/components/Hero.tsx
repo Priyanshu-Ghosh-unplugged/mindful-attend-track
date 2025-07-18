@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BarChart3, Users, Target, Zap, QrCode, Wifi } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Hero = () => {
   const [engagementScore] = useState(87);
@@ -29,13 +30,11 @@ const Hero = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                variant="hero" 
-                size="lg"
-                onClick={() => window.open('#dashboard', '_self')}
-              >
-                Start Tracking
-                <Zap className="w-5 h-5" />
+              <Button variant="hero" size="lg" asChild>
+                <Link to="/dashboard">
+                  Start Tracking
+                  <Zap className="w-5 h-5" />
+                </Link>
               </Button>
               <Button 
                 variant="outline" 

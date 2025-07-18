@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { 
   Smartphone, 
   BarChart3, 
@@ -10,6 +11,7 @@ import {
   Wifi,
   Target
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Features = () => {
   const features = [
@@ -144,18 +146,17 @@ const Features = () => {
                 Our modular platform grows with your event engagement needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button 
-                  className="px-8 py-3 bg-gradient-brass text-primary-foreground rounded-xl font-semibold shadow-brass hover:shadow-glow transform hover:scale-105 transition-all duration-300"
-                  onClick={() => window.open('#pricing', '_self')}
-                >
-                  Start Free Trial
-                </button>
-                <button 
-                  className="px-8 py-3 border border-brass text-brass rounded-xl font-medium hover:bg-brass/10 transition-all duration-300"
+                <Button variant="brass" size="lg" className="transform hover:scale-105 transition-all duration-300" asChild>
+                  <Link to="/pricing">Start Free Trial</Link>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  className="border-brass text-brass hover:bg-brass/10 transition-all duration-300"
                   onClick={() => alert('Demo scheduled! We\'ll contact you within 24 hours.')}
                 >
                   Schedule Demo
-                </button>
+                </Button>
               </div>
             </div>
           </Card>

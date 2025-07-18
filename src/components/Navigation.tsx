@@ -1,15 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: "Features", href: "#features" },
-    { label: "Dashboard", href: "#dashboard" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Docs", href: "#docs" }
+    { label: "Features", href: "/#features" },
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Docs", href: "/docs" }
   ];
 
   return (
@@ -30,33 +31,23 @@ const Navigation = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
-                className="text-muted-foreground hover:text-brass transition-colors duration-200 font-medium cursor-pointer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert(`Navigating to ${item.label} section...`);
-                }}
+                to={item.href}
+                className="text-muted-foreground hover:text-brass transition-colors duration-200 font-medium"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </div>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button 
-              variant="ghost"
-              onClick={() => alert('Login: Welcome back to MindfulTrack!')}
-            >
-              Login
+            <Button variant="ghost" asChild>
+              <Link to="/login">Login</Link>
             </Button>
-            <Button 
-              variant="brass"
-              onClick={() => window.open('#pricing', '_self')}
-            >
-              Get Started
+            <Button variant="brass" asChild>
+              <Link to="/pricing">Get Started</Link>
             </Button>
           </div>
 
@@ -78,39 +69,25 @@ const Navigation = () => {
           <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-md">
             <div className="py-4 space-y-4">
               {navItems.map((item) => (
-                <a
+                <Link
                   key={item.label}
-                  href={item.href}
-                  className="block px-4 py-2 text-muted-foreground hover:text-brass transition-colors duration-200 font-medium cursor-pointer"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setIsMenuOpen(false);
-                    alert(`Navigating to ${item.label} section...`);
-                  }}
+                  to={item.href}
+                  className="block px-4 py-2 text-muted-foreground hover:text-brass transition-colors duration-200 font-medium"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
               <div className="px-4 pt-4 space-y-3 border-t border-border/50">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    alert('Login: Welcome back to MindfulTrack!');
-                  }}
-                >
-                  Login
+                <Button variant="ghost" className="w-full justify-start" asChild>
+                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                    Login
+                  </Link>
                 </Button>
-                <Button 
-                  variant="brass" 
-                  className="w-full"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    window.open('#pricing', '_self');
-                  }}
-                >
-                  Get Started
+                <Button variant="brass" className="w-full" asChild>
+                  <Link to="/pricing" onClick={() => setIsMenuOpen(false)}>
+                    Get Started
+                  </Link>
                 </Button>
               </div>
             </div>

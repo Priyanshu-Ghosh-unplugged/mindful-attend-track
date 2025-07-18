@@ -33,7 +33,11 @@ const Navigation = () => {
               <a
                 key={item.label}
                 href={item.href}
-                className="text-muted-foreground hover:text-brass transition-colors duration-200 font-medium"
+                className="text-muted-foreground hover:text-brass transition-colors duration-200 font-medium cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  alert(`Navigating to ${item.label} section...`);
+                }}
               >
                 {item.label}
               </a>
@@ -42,10 +46,16 @@ const Navigation = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost">
+            <Button 
+              variant="ghost"
+              onClick={() => alert('Login: Welcome back to MindfulTrack!')}
+            >
               Login
             </Button>
-            <Button variant="brass">
+            <Button 
+              variant="brass"
+              onClick={() => window.open('#pricing', '_self')}
+            >
               Get Started
             </Button>
           </div>
@@ -71,17 +81,35 @@ const Navigation = () => {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="block px-4 py-2 text-muted-foreground hover:text-brass transition-colors duration-200 font-medium"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="block px-4 py-2 text-muted-foreground hover:text-brass transition-colors duration-200 font-medium cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setIsMenuOpen(false);
+                    alert(`Navigating to ${item.label} section...`);
+                  }}
                 >
                   {item.label}
                 </a>
               ))}
               <div className="px-4 pt-4 space-y-3 border-t border-border/50">
-                <Button variant="ghost" className="w-full justify-start">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    alert('Login: Welcome back to MindfulTrack!');
+                  }}
+                >
                   Login
                 </Button>
-                <Button variant="brass" className="w-full">
+                <Button 
+                  variant="brass" 
+                  className="w-full"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    window.open('#pricing', '_self');
+                  }}
+                >
                   Get Started
                 </Button>
               </div>

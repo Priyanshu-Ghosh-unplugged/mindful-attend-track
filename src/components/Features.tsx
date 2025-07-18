@@ -105,10 +105,11 @@ const Features = () => {
                   return (
                     <Card 
                       key={feature.title}
-                      className="p-6 shadow-elegant bg-gradient-card border-accent/20 hover:shadow-brass transition-all duration-300 hover:scale-105 group"
+                      className="p-6 shadow-elegant bg-gradient-card border-accent/20 hover:shadow-brass transition-all duration-300 hover:scale-105 group cursor-pointer"
                       style={{ 
                         animationDelay: `${categoryIndex * 100 + index * 100}ms` 
                       }}
+                      onClick={() => alert(`${feature.title}: ${feature.description}`)}
                     >
                       <div className="space-y-4">
                         <div className="w-12 h-12 bg-brass/10 rounded-lg flex items-center justify-center group-hover:bg-brass/20 transition-colors">
@@ -143,10 +144,16 @@ const Features = () => {
                 Our modular platform grows with your event engagement needs.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button className="px-8 py-3 bg-gradient-brass text-primary-foreground rounded-xl font-semibold shadow-brass hover:shadow-glow transform hover:scale-105 transition-all duration-300">
+                <button 
+                  className="px-8 py-3 bg-gradient-brass text-primary-foreground rounded-xl font-semibold shadow-brass hover:shadow-glow transform hover:scale-105 transition-all duration-300"
+                  onClick={() => window.open('#pricing', '_self')}
+                >
                   Start Free Trial
                 </button>
-                <button className="px-8 py-3 border border-brass text-brass rounded-xl font-medium hover:bg-brass/10 transition-all duration-300">
+                <button 
+                  className="px-8 py-3 border border-brass text-brass rounded-xl font-medium hover:bg-brass/10 transition-all duration-300"
+                  onClick={() => alert('Demo scheduled! We\'ll contact you within 24 hours.')}
+                >
                   Schedule Demo
                 </button>
               </div>

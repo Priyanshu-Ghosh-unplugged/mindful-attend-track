@@ -29,11 +29,19 @@ const Hero = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="lg">
+              <Button 
+                variant="hero" 
+                size="lg"
+                onClick={() => window.open('#dashboard', '_self')}
+              >
                 Start Tracking
                 <Zap className="w-5 h-5" />
               </Button>
-              <Button variant="outline" size="lg">
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => alert('Demo: Interactive engagement dashboard with real-time scoring!')}
+              >
                 View Demo
                 <BarChart3 className="w-5 h-5" />
               </Button>

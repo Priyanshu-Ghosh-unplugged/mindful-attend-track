@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QrCode, Nfc, Smartphone, Wifi, CheckCircle, Play } from "lucide-react";
 import { Link } from "react-router-dom";
+import { logEngagementEvent } from "@/integrations/supabase/logEngagementEvent";
+import { useState } from "react";
+
+const MOCK_PARTICIPANT_ID = "00000000-0000-0000-0000-000000000000";
+const MOCK_SESSION_ID = "11111111-1111-1111-1111-111111111111";
 
 const AutoTracking = () => {
   const trackingMethods = [
@@ -37,6 +42,32 @@ const AutoTracking = () => {
       accuracy: "85%"
     }
   ];
+
+  const [eventLog, setEventLog] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSimulate(type: string) {
+    setLoading(true);
+    setError(null);
+    const event = {
+      activity_type: type,
+      participant_id: MOCK_PARTICIPANT_ID,
+      session_id: MOCK_SESSION_ID,
+      metadata: { simulated: true, source: "demo" },
+      points: 10,
+    };
+    const { error } = await logEngagementEvent(event);
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+    } else {
+      setEventLog((prev) => [
+        { ...event, created_at: new Date().toISOString() },
+        ...prev.slice(0, 4),
+      ]);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -146,6 +177,36 @@ const AutoTracking = () => {
               </div>
             </Card>
           </div>
+
+          {/* --- DEMO: Simulate Engagement Events --- */}
+          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass my-12">
+            <h3 className="text-2xl font-semibold mb-4">Simulate Engagement Events</h3>
+            <div className="flex flex-wrap gap-4 mb-4">
+              <Button onClick={() => handleSimulate("qr_scan")} disabled={loading} variant="brass">
+                Simulate QR Scan
+              </Button>
+              <Button onClick={() => handleSimulate("nfc_tap")} disabled={loading} variant="outline">
+                Simulate NFC Tap
+              </Button>
+              <Button onClick={() => handleSimulate("browser_event")} disabled={loading} variant="secondary">
+                Simulate Browser Event
+              </Button>
+            </div>
+            {error && <div className="text-red-500 mb-2">Error: {error}</div>}
+            <div>
+              <h4 className="font-semibold mb-2">Recent Simulated Events</h4>
+              <ul className="space-y-1 text-sm">
+                {eventLog.length === 0 && <li className="text-muted-foreground">No events yet.</li>}
+                {eventLog.map((e, i) => (
+                  <li key={i} className="flex gap-2 items-center">
+                    <span className="font-mono text-xs">{e.created_at?.slice(11,19)}</span>
+                    <span className="font-semibold">{e.activity_type}</span>
+                    <span className="text-muted-foreground">({e.points} pts)</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Card>
         </div>
       </main>
     </div>

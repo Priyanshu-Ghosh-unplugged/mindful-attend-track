@@ -19,6 +19,7 @@ import {
   Globe,
   CheckCircle
 } from "lucide-react";
+import { InertiaPlugin } from "gsap/all";
 
 const Features = () => {
   const features = [

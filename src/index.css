@@ -141,22 +141,61 @@
     position: relative;
   }
 
+  .dot-grid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .dot-grid {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    opacity: 1;
+  }
+
+  .dot-grid__wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
+
+  .dot-grid__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: transparent;
+    opacity: 1;
+  }
+
   body::before {
     content: '';
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url('https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+    width: 100vw;
+    height: 100vh;
+    background-image: url('./assets/mandala-background.png');
     background-size: cover;
     background-position: center;
-    background-attachment: fixed;
     background-repeat: no-repeat;
-    opacity: 0.03;
-    z-index: -2;
+    opacity: 0.02;
+    z-index: 0;
+    pointer-events: none;
   }
 
+  .bg-background {
+    background-color: transparent !important;
+  }
+
+  /*
   body::after {
     content: '';
     position: fixed;
@@ -164,9 +203,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: hsl(var(--background) / 0.95);
+    background: hsl(var(--background) / 0.7);
     z-index: -1;
   }
+*/
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-poppins;
@@ -179,17 +219,7 @@
   }
 
   .mandala-overlay::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url('https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
-    background-size: cover;
-    background-position: center;
-    opacity: 0.05;
-    pointer-events: none;
-    z-index: -1;
+    /* Remove Unsplash image and use local asset for overlays if needed */
+    background-image: url('./assets/mandala-background.png');
   }
 }

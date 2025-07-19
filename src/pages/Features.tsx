@@ -1,15 +1,16 @@
 
+import React, { useState } from "react";
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { 
-  Activity, 
-  BarChart3, 
-  MapPin, 
-  Bot, 
-  MessageSquare, 
+import { Link } from "react-router-dom";
+import {
+  Activity,
+  BarChart3,
+  MapPin,
+  Bot,
+  MessageSquare,
   Brain,
   Nfc,
   Target,
@@ -26,77 +27,88 @@ const Features = () => {
       title: "Auto-tracking",
       description: "Automatically track participant engagement without manual intervention",
       benefits: ["Real-time data collection", "Zero setup required", "Seamless integration"],
-      category: "Core"
+      category: "Core",
+      link: "/auto-tracking"
     },
     {
       icon: Target,
       title: "Dynamic Scoring",
       description: "AI-powered engagement scoring that adapts to different event types",
       benefits: ["Personalized metrics", "Adaptive algorithms", "Fair comparison"],
-      category: "AI"
+      category: "AI",
+      link: "/dynamic-scoring"
     },
     {
       icon: MapPin,
       title: "Live Heatmaps",
       description: "Visualize engagement hotspots and participant movement patterns",
       benefits: ["Visual insights", "Spatial analytics", "Crowd flow optimization"],
-      category: "Analytics"
+      category: "Analytics",
+      link: "/live-heatmaps"
     },
     {
       icon: Bot,
       title: "AI Mentor",
       description: "Intelligent recommendations to improve engagement during events",
       benefits: ["Smart suggestions", "Real-time optimization", "Learning algorithms"],
-      category: "AI"
+      category: "AI",
+      link: "/ai-mentor"
     },
     {
       icon: MessageSquare,
       title: "Live Chats",
       description: "Real-time communication platform for participants and organizers",
       benefits: ["Instant messaging", "Group discussions", "Moderation tools"],
-      category: "Communication"
+      category: "Communication",
+      link: "/chats"
     },
     {
       icon: Brain,
       title: "Session Intelligence",
       description: "Deep insights into session performance and participant behavior",
       benefits: ["Behavioral analysis", "Performance metrics", "Predictive insights"],
-      category: "Analytics"
+      category: "Analytics",
+      link: "/session-intelligence"
     },
     {
       icon: Nfc,
       title: "NFC Booth Tracking",
       description: "Track booth visits and interactions using NFC technology",
       benefits: ["Contact-free tracking", "Instant data capture", "Hardware integration"],
-      category: "Hardware"
+      category: "Hardware",
+      link: "/nfc-booth"
     },
     {
       icon: Activity,
       title: "Live Tracking",
       description: "Monitor all activities and interactions in real-time",
       benefits: ["Live monitoring", "Instant alerts", "Real-time dashboards"],
-      category: "Core"
+      category: "Core",
+      link: "/tracking"
     },
     {
       icon: Headphones,
       title: "VR Metrics",
       description: "Advanced tracking for virtual and augmented reality experiences",
       benefits: ["Immersive analytics", "VR/AR support", "3D engagement tracking"],
-      category: "Advanced"
+      category: "Advanced",
+      link: "/vr-metrics"
     },
     {
       icon: Zap,
       title: "Real-time Sync",
       description: "Instantaneous data synchronization across all devices and platforms",
       benefits: ["Zero latency", "Cross-platform sync", "Offline capability"],
-      category: "Core"
+      category: "Core",
+      link: "/real-time-sync"
     },
     {
       icon: Globe,
       title: "Multi-event Support",
       description: "Manage multiple events simultaneously with unified tracking",
       benefits: ["Centralized management", "Scalable architecture", "Event comparison"],
-      category: "Enterprise"
+      category: "Enterprise",
+      link: "/multi-event"
     }
   ];
 
@@ -141,32 +153,32 @@ const Features = () => {
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
             {filteredFeatures.map((feature, index) => (
-              <Card key={index} className="p-6 bg-gradient-card border-accent/20 hover:shadow-elegant transition-shadow">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-brass/10 rounded-lg flex items-center justify-center">
-                    <feature.icon className="w-6 h-6 text-brass" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{feature.title}</h3>
-                    <Badge variant="secondary" className="text-xs mt-1">
-                      {feature.category}
-                    </Badge>
-                  </div>
-                </div>
-                
-                <p className="text-muted-foreground mb-4">
-                  {feature.description}
-                </p>
-                
-                <div className="space-y-2">
-                  {feature.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-brass" />
-                      <span>{benefit}</span>
+              <Link to={feature.link} key={index} style={{ textDecoration: 'none' }}>
+                <Card className="p-6 bg-gradient-card border-accent/20 hover:shadow-elegant transition-shadow cursor-pointer">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-brass/10 rounded-lg flex items-center justify-center">
+                      <feature.icon className="w-6 h-6 text-brass" />
                     </div>
-                  ))}
-                </div>
-              </Card>
+                    <div>
+                      <h3 className="font-semibold">{feature.title}</h3>
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        {feature.category}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    {feature.description}
+                  </p>
+                  <div className="space-y-2">
+                    {feature.benefits.map((benefit, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-brass" />
+                        <span>{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </Link>
             ))}
           </div>
 
@@ -180,11 +192,11 @@ const Features = () => {
                 Start your free trial and see how MindfulTrack can transform your events
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="brass" size="lg">
-                  Start Free Trial
+                <Button variant="brass" size="lg" asChild>
+                  <Link to="/get-started">Start Free Trial</Link>
                 </Button>
-                <Button variant="outline" size="lg">
-                  View Pricing
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/pricing">View Pricing</Link>
                 </Button>
               </div>
             </Card>

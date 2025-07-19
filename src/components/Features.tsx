@@ -19,55 +19,64 @@ const Features = () => {
       icon: QrCode,
       title: "Auto-Tracking",
       description: "RFID/NFC + QR codes + Browser tracking + Download monitoring for seamless engagement capture",
-      category: "Core Engine"
+      category: "Core Engine",
+      link: "/auto-tracking"
     },
     {
       icon: BarChart3,
       title: "Dynamic Scoring",
       description: "Attendance (35%) + Participation (40%) + Resources (25%) = Real-time engagement metrics",
-      category: "Core Engine"
+      category: "Core Engine",
+      link: "/dynamic-scoring"
     },
     {
       icon: Globe,
       title: "Live Heatmaps",
       description: "3D score globes and participant timelines with interactive visualization dashboards",
-      category: "Dashboard"
+      category: "Dashboard",
+      link: "/live-heatmaps"
     },
     {
       icon: Brain,
       title: "AI Mentor Chat",
       description: "Skill-based mentor matching with intelligent conversation and fraud detection",
-      category: "Premium AI"
+      category: "Premium AI",
+      link: "/ai-mentor"
     },
     {
       icon: Smartphone,
       title: "NFC Booth Tracking",
       description: "Physical proximity alerts and booth engagement monitoring for hybrid events",
-      category: "Hybrid Tools"
+      category: "Hybrid Tools",
+      link: "/nfc-booth"
     },
     {
       icon: Target,
       title: "VR Metrics",
       description: "Virtual reality engagement tracking with sponsor advertisement analytics integration",
-      category: "Hybrid Tools"
+      category: "Hybrid Tools",
+      link: "/vr-metrics"
     },
     {
       icon: Zap,
       title: "Real-time Sync",
       description: "Google Cloud Pub/Sub infrastructure with React Native mobile app synchronization",
-      category: "Infrastructure"
+      category: "Infrastructure",
+      link: "/real-time-sync"
     },
     {
       icon: Users,
       title: "Multi-Event",
       description: "GDPR compliance toggles with multi-event cloning and template management",
-      category: "Infrastructure"
+      category: "Infrastructure",
+      link: "/multi-event"
     },
     {
       icon: Wifi,
       title: "Session Intelligence",
       description: "AI-powered session recommendations based on engagement patterns and preferences",
-      category: "Premium AI"
+      category: "Premium AI",
+      link: "/session-intelligence"
     }
   ];
 
@@ -111,7 +120,7 @@ const Features = () => {
                       style={{ 
                         animationDelay: `${categoryIndex * 100 + index * 100}ms` 
                       }}
-                      onClick={() => alert(`${feature.title}: ${feature.description}`)}
+                      onClick={() => window.location.href = feature.link}
                     >
                       <div className="space-y-4">
                         <div className="w-12 h-12 bg-brass/10 rounded-lg flex items-center justify-center group-hover:bg-brass/20 transition-colors">
@@ -147,15 +156,15 @@ const Features = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="brass" size="lg" className="transform hover:scale-105 transition-all duration-300" asChild>
-                  <Link to="/pricing">Start Free Trial</Link>
+                  <Link to="/get-started">Start Free Trial</Link>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg"
                   className="border-brass text-brass hover:bg-brass/10 transition-all duration-300"
-                  onClick={() => alert('Demo scheduled! We\'ll contact you within 24 hours.')}
+                  asChild
                 >
-                  Schedule Demo
+                  <Link to="/demo">Schedule Demo</Link>
                 </Button>
               </div>
             </div>

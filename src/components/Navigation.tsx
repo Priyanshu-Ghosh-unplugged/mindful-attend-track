@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -7,7 +8,7 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: "Features", href: "/#features" },
+    { label: "Features", href: "/features" },
     { label: "Dashboard", href: "/dashboard" },
     { label: "Pricing", href: "/pricing" },
     { label: "Docs", href: "/docs" }
@@ -44,10 +45,10 @@ const Navigation = () => {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center space-x-4">
             <Button variant="ghost" asChild>
-              <Link to="/login">Login</Link>
+              <Link to="/demo">View Demo</Link>
             </Button>
             <Button variant="brass" asChild>
-              <Link to="/pricing">Get Started</Link>
+              <Link to="/get-started">Get Started</Link>
             </Button>
           </div>
 
@@ -80,12 +81,12 @@ const Navigation = () => {
               ))}
               <div className="px-4 pt-4 space-y-3 border-t border-border/50">
                 <Button variant="ghost" className="w-full justify-start" asChild>
-                  <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    Login
+                  <Link to="/demo" onClick={() => setIsMenuOpen(false)}>
+                    View Demo
                   </Link>
                 </Button>
                 <Button variant="brass" className="w-full" asChild>
-                  <Link to="/pricing" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/get-started" onClick={() => setIsMenuOpen(false)}>
                     Get Started
                   </Link>
                 </Button>

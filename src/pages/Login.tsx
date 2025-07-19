@@ -1,3 +1,4 @@
+
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,22 +7,52 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, Github, Chrome } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
+    password: "",
+    fullName: ""
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const { user, signIn, signUp, signInWithGoogle, signInWithGitHub } = useAuth();
+
+  // Redirect if already authenticated
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Login attempted with: ${formData.email}`);
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        await signUp(formData.email, formData.password, formData.fullName);
+      } else {
+        await signIn(formData.email, formData.password);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    alert(`Logging in with ${provider}...`);
+  const handleSocialLogin = async (provider: 'google' | 'github') => {
+    setLoading(true);
+    try {
+      if (provider === 'google') {
+        await signInWithGoogle();
+      } else {
+        await signInWithGitHub();
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -34,10 +65,16 @@ const Login = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold font-poppins mb-4">
-              Welcome <span className="bg-gradient-brass bg-clip-text text-transparent">Back</span>
+              {isSignUp ? "Create Account" : "Welcome"}{" "}
+              <span className="bg-gradient-brass bg-clip-text text-transparent">
+                {isSignUp ? "" : "Back"}
+              </span>
             </h1>
             <p className="text-muted-foreground">
-              Sign in to access your engagement dashboard
+              {isSignUp 
+                ? "Join MindfulTrack to start tracking engagement" 
+                : "Sign in to access your engagement dashboard"
+              }
             </p>
           </div>
 
@@ -49,7 +86,8 @@ const Login = () => {
               <Button 
                 variant="outline" 
                 className="w-full" 
-                onClick={() => handleSocialLogin('Google')}
+                onClick={() => handleSocialLogin('google')}
+                disabled={loading}
               >
                 <Chrome className="w-4 h-4 mr-2" />
                 Continue with Google
@@ -57,7 +95,8 @@ const Login = () => {
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => handleSocialLogin('GitHub')}
+                onClick={() => handleSocialLogin('github')}
+                disabled={loading}
               >
                 <Github className="w-4 h-4 mr-2" />
                 Continue with GitHub
@@ -73,6 +112,20 @@ const Login = () => {
 
             {/* Email/Password Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                    required={isSignUp}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -96,7 +149,7 @@ const Login = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={isSignUp ? "Create a password" : "Enter your password"}
                     className="pl-10 pr-10"
                     value={formData.password}
                     onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -112,48 +165,43 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" className="rounded" />
-                  <span>Remember me</span>
-                </label>
-                <button 
-                  type="button" 
-                  className="text-brass hover:underline"
-                  onClick={() => alert('Password reset email sent!')}
-                >
-                  Forgot password?
-                </button>
-              </div>
+              {!isSignUp && (
+                <div className="flex items-center justify-between text-sm">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" className="rounded" />
+                    <span>Remember me</span>
+                  </label>
+                  <button 
+                    type="button" 
+                    className="text-brass hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
-              <Button type="submit" variant="brass" className="w-full" size="lg">
-                Sign In
+              <Button 
+                type="submit" 
+                variant="brass" 
+                className="w-full" 
+                size="lg"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : (isSignUp ? "Create Account" : "Sign In")}
               </Button>
             </form>
 
             {/* Footer */}
             <div className="mt-6 text-center text-sm text-muted-foreground">
-              Don't have an account?{" "}
+              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
               <button 
                 className="text-brass hover:underline font-medium"
-                onClick={() => alert('Sign up form would open here')}
+                onClick={() => setIsSignUp(!isSignUp)}
               >
-                Sign up
+                {isSignUp ? "Sign in" : "Sign up"}
               </button>
             </div>
           </Card>
-
-          {/* Additional Info */}
-          <div className="mt-8 text-center">
-            <Card className="p-4 bg-gradient-card border-accent/20">
-              <p className="text-sm text-muted-foreground mb-2">
-                <strong>Demo Account:</strong>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Email: demo@mindfultrack.com | Password: demo123
-              </p>
-            </Card>
-          </div>
 
           <div className="mt-6 text-center">
             <Link to="/" className="text-sm text-brass hover:underline">

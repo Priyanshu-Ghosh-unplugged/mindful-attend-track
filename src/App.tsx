@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -33,38 +34,40 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/demo" element={<Demo />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/docs" element={<Docs />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/start-tracking" element={<StartTracking />} />
-          
-          {/* Feature Pages */}
-          <Route path="/get-started" element={<GetStarted />} />
-          <Route path="/auto-tracking" element={<AutoTracking />} />
-          <Route path="/dynamic-scoring" element={<DynamicScoring />} />
-          <Route path="/live-heatmaps" element={<LiveHeatmaps />} />
-          <Route path="/ai-mentor" element={<AIMentor />} />
-          <Route path="/chats" element={<Chats />} />
-          <Route path="/session-intelligence" element={<SessionIntelligence />} />
-          <Route path="/nfc-booth" element={<NFCBooth />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/vr-metrics" element={<VRMetrics />} />
-          <Route path="/real-time-sync" element={<RealTimeSync />} />
-          <Route path="/multi-event" element={<MultiEvent />} />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/home" element={<Index />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/docs" element={<Docs />} />
+            <Route path="/start-tracking" element={<StartTracking />} />
+            
+            {/* Feature Pages */}
+            <Route path="/get-started" element={<GetStarted />} />
+            <Route path="/auto-tracking" element={<AutoTracking />} />
+            <Route path="/dynamic-scoring" element={<DynamicScoring />} />
+            <Route path="/live-heatmaps" element={<LiveHeatmaps />} />
+            <Route path="/ai-mentor" element={<AIMentor />} />
+            <Route path="/chats" element={<Chats />} />
+            <Route path="/session-intelligence" element={<SessionIntelligence />} />
+            <Route path="/nfc-booth" element={<NFCBooth />} />
+            <Route path="/tracking" element={<Tracking />} />
+            <Route path="/vr-metrics" element={<VRMetrics />} />
+            <Route path="/real-time-sync" element={<RealTimeSync />} />
+            <Route path="/multi-event" element={<MultiEvent />} />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

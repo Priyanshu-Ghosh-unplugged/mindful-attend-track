@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -66,19 +67,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -144,11 +138,7 @@
 
   body {
     @apply bg-background text-foreground font-inter;
-    background-image: url('/src/assets/mandala-background.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    position: relative;
   }
 
   body::before {
@@ -158,7 +148,23 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: hsl(var(--background) / 0.9);
+    background-image: url('https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    opacity: 0.03;
+    z-index: -2;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: hsl(var(--background) / 0.95);
     z-index: -1;
   }
 
@@ -179,10 +185,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url('/src/assets/mandala-background.png');
+    background-image: url('https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
     background-size: cover;
     background-position: center;
-    opacity: 0.1;
+    opacity: 0.05;
     pointer-events: none;
     z-index: -1;
   }

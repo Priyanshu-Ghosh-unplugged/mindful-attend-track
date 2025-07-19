@@ -2,14 +2,27 @@ import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Users, Target, Clock, TrendingUp, Activity } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
-  const engagementData = [
-    { name: "Alice Chen", score: 94, trend: "+12", sessions: 8 },
-    { name: "Bob Wilson", score: 87, trend: "+8", sessions: 6 },
-    { name: "Carol Davis", score: 76, trend: "+5", sessions: 7 },
-    { name: "David Kim", score: 82, trend: "+15", sessions: 5 }
-  ];
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchParticipants() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('participants')
+        .select('id, user_id, engagement_score, attendance_score, participation_score, resource_score')
+        .order('engagement_score', { ascending: false });
+      if (!error && data) {
+        setParticipants(data);
+      }
+      setLoading(false);
+    }
+    fetchParticipants();
+  }, []);
 
   const sessionData = [
     { name: "AI Workshop", attendance: 45, engagement: 89 },
@@ -78,33 +91,38 @@ const Dashboard = () => {
             </Card>
           </div>
 
+          {/* Top Participants (dynamic) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Top Participants */}
             <Card className="p-6 bg-gradient-card border-accent/20">
               <h3 className="text-xl font-semibold font-poppins mb-6 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-brass" />
                 Top Participants
               </h3>
-              <div className="space-y-4">
-                {engagementData.map((participant, index) => (
-                  <div key={participant.name} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-brass/20 rounded-full flex items-center justify-center text-brass font-semibold">
-                        {index + 1}
+              {loading ? (
+                <div>Loading...</div>
+              ) : (
+                <div className="space-y-4">
+                  {participants.map((participant, index) => (
+                    <div key={participant.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-brass/20 rounded-full flex items-center justify-center text-brass font-semibold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium">{participant.user_id}</p>
+                          <p className="text-sm text-muted-foreground">Engagement: {participant.engagement_score ?? 0}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{participant.name}</p>
-                        <p className="text-sm text-muted-foreground">{participant.sessions} sessions attended</p>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-brass">{participant.engagement_score ?? 0}</p>
+                        <div className="text-xs text-muted-foreground">
+                          Attendance: {participant.attendance_score ?? 0} | Participation: {participant.participation_score ?? 0} | Resources: {participant.resource_score ?? 0}
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-brass">{participant.score}%</p>
-                      <p className="text-sm text-green-500">{participant.trend}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
 
             {/* Session Performance */}

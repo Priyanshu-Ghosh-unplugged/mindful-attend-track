@@ -6,10 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { QrCode, Nfc, Smartphone, Wifi, CheckCircle, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 import { logEngagementEvent } from "@/integrations/supabase/logEngagementEvent";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+// Use 'any' for QrReader due to type issues with react-qr-reader and React 18
+import { QrReader } from 'react-qr-reader';
 
 const MOCK_PARTICIPANT_ID = "00000000-0000-0000-0000-000000000000";
 const MOCK_SESSION_ID = "11111111-1111-1111-1111-111111111111";
+const MOCK_EVENT_ID = "22222222-2222-2222-2222-222222222222";
 
 const AutoTracking = () => {
   const trackingMethods = [
@@ -46,6 +49,46 @@ const AutoTracking = () => {
   const [eventLog, setEventLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qrScanResult, setQrScanResult] = useState<string | null>(null);
+  const [qrScanError, setQrScanError] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  // NFC tracking state
+  const [nfcSupported, setNfcSupported] = useState<boolean | null>(null);
+  const [nfcScanResult, setNfcScanResult] = useState<string | null>(null);
+  const [nfcScanError, setNfcScanError] = useState<string | null>(null);
+  const [nfcLoading, setNfcLoading] = useState(false);
+
+  // Event selection state
+  const [selectedEventId, setSelectedEventId] = useState<string>(MOCK_EVENT_ID);
+
+  // NFC feature detection
+  useState(() => {
+    setNfcSupported('NDEFReader' in window);
+  });
+
+  // Log page visit on mount
+  useEffect(() => {
+    const logPageVisit = async () => {
+      const event = {
+        activity_type: "page_visit",
+        participant_id: MOCK_PARTICIPANT_ID,
+        session_id: MOCK_SESSION_ID,
+        event_id: selectedEventId,
+        metadata: { url: window.location.href },
+        points: 1,
+      };
+      const { error } = await logEngagementEvent(event);
+      if (!error) {
+        setEventLog((prev) => [
+          { ...event, created_at: new Date().toISOString() },
+          ...prev.slice(0, 4),
+        ]);
+      }
+    };
+    logPageVisit();
+    // eslint-disable-next-line
+  }, []);
 
   async function handleSimulate(type: string) {
     setLoading(true);
@@ -54,6 +97,7 @@ const AutoTracking = () => {
       activity_type: type,
       participant_id: MOCK_PARTICIPANT_ID,
       session_id: MOCK_SESSION_ID,
+      event_id: selectedEventId,
       metadata: { simulated: true, source: "demo" },
       points: 10,
     };
@@ -62,6 +106,131 @@ const AutoTracking = () => {
     if (error) {
       setError(error.message);
     } else {
+      setEventLog((prev) => [
+        { ...event, created_at: new Date().toISOString() },
+        ...prev.slice(0, 4),
+      ]);
+    }
+  }
+
+  async function handleQrScan(data: string | null) {
+    if (data && data !== qrScanResult) {
+      setQrScanResult(data);
+      setQrLoading(true);
+      setQrScanError(null);
+      const event = {
+        activity_type: 'qr_scan',
+        participant_id: MOCK_PARTICIPANT_ID,
+        session_id: MOCK_SESSION_ID,
+        event_id: selectedEventId,
+        metadata: { scanned: data },
+        points: 10,
+      };
+      const { error } = await logEngagementEvent(event);
+      setQrLoading(false);
+      if (error) {
+        setQrScanError(error.message);
+      } else {
+        setEventLog((prev) => [
+          { ...event, created_at: new Date().toISOString() },
+          ...prev.slice(0, 4),
+        ]);
+      }
+    }
+  }
+
+  function handleQrError(err: any) {
+    setQrScanError(err?.message || String(err));
+  }
+
+  async function handleNfcScan() {
+    setNfcScanError(null);
+    setNfcScanResult(null);
+    setNfcLoading(true);
+    if (!('NDEFReader' in window)) {
+      setNfcSupported(false);
+      setNfcLoading(false);
+      return;
+    }
+    try {
+      // @ts-ignore
+      const ndef = new window.NDEFReader();
+      await ndef.scan();
+      ndef.onreading = async (event: any) => {
+        let nfcData = '';
+        if (event.message && event.message.records.length > 0) {
+          const record = event.message.records[0];
+          if (record.recordType === 'text') {
+            const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+            nfcData = textDecoder.decode(record.data);
+          } else {
+            nfcData = '[NFC record type: ' + record.recordType + ']';
+          }
+        } else {
+          nfcData = '[Unknown NFC tag]';
+        }
+        setNfcScanResult(nfcData);
+        setNfcLoading(false);
+        // Log to Supabase
+        const eventObj = {
+          activity_type: 'nfc_scan',
+          participant_id: MOCK_PARTICIPANT_ID,
+          session_id: MOCK_SESSION_ID,
+          event_id: selectedEventId,
+          metadata: { scanned: nfcData },
+          points: 10,
+        };
+        const { error } = await logEngagementEvent(eventObj);
+        if (error) {
+          setNfcScanError(error.message);
+        } else {
+          setEventLog((prev) => [
+            { ...eventObj, created_at: new Date().toISOString() },
+            ...prev.slice(0, 4),
+          ]);
+        }
+      };
+      ndef.onerror = (err: any) => {
+        setNfcScanError(err?.message || String(err));
+        setNfcLoading(false);
+      };
+    } catch (err: any) {
+      setNfcScanError(err?.message || String(err));
+      setNfcLoading(false);
+    }
+  }
+
+  // Simulate resource download
+  async function handleResourceDownload() {
+    const event = {
+      activity_type: "resource_download",
+      participant_id: MOCK_PARTICIPANT_ID,
+      session_id: MOCK_SESSION_ID,
+      event_id: selectedEventId,
+      metadata: { resource: "demo.pdf" },
+      points: 5,
+    };
+    const { error } = await logEngagementEvent(event);
+    if (!error) {
+      setEventLog((prev) => [
+        { ...event, created_at: new Date().toISOString() },
+        ...prev.slice(0, 4),
+      ]);
+    }
+  }
+
+  // Simulate generic click
+  async function handleGenericClick() {
+    const event = {
+      activity_type: "browser_click",
+      participant_id: MOCK_PARTICIPANT_ID,
+      session_id: MOCK_SESSION_ID,
+      event_id: selectedEventId,
+      metadata: { element: "Demo Button" },
+      points: 2,
+    };
+    const { error } = await logEngagementEvent(event);
+    if (!error) {
       setEventLog((prev) => [
         { ...event, created_at: new Date().toISOString() },
         ...prev.slice(0, 4),
@@ -177,6 +346,61 @@ const AutoTracking = () => {
               </div>
             </Card>
           </div>
+
+          {/* --- QR Code Scanner --- */}
+          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass my-12">
+            <h3 className="text-2xl font-semibold mb-4">QR Code Tracking</h3>
+            <div className="mb-4">
+              {QrReader ? (
+                <div style={{ width: '100%' }}>
+                  <QrReader
+                    scanDelay={300}
+                    constraints={{ facingMode: 'environment' }}
+                    onResult={(result, error) => {
+                      if (result?.getText()) handleQrScan(result.getText());
+                      if (error) handleQrError(error);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div>QR scanner not available.</div>
+              )}
+            </div>
+            {qrLoading && <div className="text-brass mb-2">Logging scan...</div>}
+            {qrScanResult && <div className="text-green-600 mb-2">Scanned: {qrScanResult}</div>}
+            {qrScanError && <div className="text-red-500 mb-2">Error: {qrScanError}</div>}
+            <div className="text-muted-foreground text-xs">Point your camera at a QR code to log an engagement event.</div>
+          </Card>
+
+          {/* --- NFC Tracking --- */}
+          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass my-12">
+            <h3 className="text-2xl font-semibold mb-4">NFC Tracking</h3>
+            {nfcSupported === false && (
+              <div className="text-red-500 mb-2">Web NFC is not supported on this device/browser. Try Chrome for Android.</div>
+            )}
+            {nfcSupported && (
+              <Button onClick={handleNfcScan} disabled={nfcLoading} variant="outline" className="mb-4">
+                {nfcLoading ? 'Waiting for NFC tag...' : 'Start NFC Scan'}
+              </Button>
+            )}
+            {nfcScanResult && <div className="text-green-600 mb-2">NFC Tag: {nfcScanResult}</div>}
+            {nfcScanError && <div className="text-red-500 mb-2">Error: {nfcScanError}</div>}
+            <div className="text-muted-foreground text-xs">Tap your phone on an NFC tag to log an engagement event.</div>
+          </Card>
+
+          {/* --- Browser/Resource Tracking --- */}
+          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass my-12">
+            <h3 className="text-2xl font-semibold mb-4">Browser/Resource Tracking</h3>
+            <div className="flex flex-wrap gap-4 mb-4">
+              <Button onClick={handleResourceDownload} variant="secondary">
+                Simulate Resource Download
+              </Button>
+              <Button onClick={handleGenericClick} variant="outline">
+                Simulate Click Event
+              </Button>
+            </div>
+            <div className="text-muted-foreground text-xs">Page visits are logged automatically. Use the buttons to simulate resource downloads and clicks.</div>
+          </Card>
 
           {/* --- DEMO: Simulate Engagement Events --- */}
           <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass my-12">

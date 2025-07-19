@@ -71,3 +71,83 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Events Table Schema
+
+The `events` table enables multi-event support and links all engagement, session, and participant data to a specific event.
+
+| Column      | Type      | Description                                 |
+|-------------|-----------|---------------------------------------------|
+| id          | UUID      | Primary key, unique event identifier        |
+| name        | TEXT      | Name of the event                          |
+| description | TEXT      | Optional description of the event           |
+| start_time  | TIMESTAMPTZ | Event start date/time                     |
+| end_time    | TIMESTAMPTZ | Event end date/time                       |
+| created_at  | TIMESTAMPTZ | Row creation timestamp                    |
+| updated_at  | TIMESTAMPTZ | Row update timestamp                      |
+
+### Relationships
+- **engagement_logs.event_id** → `events.id`
+- **sessions.event_id** → `events.id`
+- **participants.event_id** → `events.id`
+
+#### Entity Relationship Diagram (ERD)
+
+```
+[events] <--- [engagement_logs]
+   |             ^
+   |             |
+   +--- [sessions]
+   |
+   +--- [participants]
+```
+
+- Each engagement log, session, and participant is linked to a single event via `event_id`.
+- Deleting an event cascades to remove related logs, sessions, and participants (if ON DELETE CASCADE is set).
+
+---
+
+## MultiEvent UI: API Calls & Business Logic
+
+The MultiEvent UI enables users to manage, compare, and analyze multiple events. All data operations use the Supabase client in React.
+
+### Event Operations
+
+#### 1. Fetch Events
+```js
+const { data } = await supabase.from('events').select('*').order('created_at', { ascending: false });
+```
+
+#### 2. Create Event
+```js
+const { data, error } = await supabase.from('events').insert([
+  { name, description, start_time, end_time }
+]).select();
+```
+
+#### 3. Clone Event
+```js
+const { data, error } = await supabase.from('events').insert([
+  { name: orig.name + ' (Clone)', description: orig.description, start_time: orig.start_time, end_time: orig.end_time }
+]).select();
+```
+
+#### 4. Select Event
+- UI state: `selectedEventId` is set to the chosen event's `id`.
+- All engagement logs, sessions, and participants are filtered or created with this `event_id`.
+
+#### 5. Compare Events (Metrics)
+For each event in the comparison set:
+```js
+const { count: attendance } = await supabase.from('participants').select('id', { count: 'exact', head: true }).eq('event_id', eid);
+const { count: engagement } = await supabase.from('engagement_logs').select('id', { count: 'exact', head: true }).eq('event_id', eid);
+const { count: sessions } = await supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('event_id', eid);
+```
+
+### Business Logic
+- All engagement, session, and participant records must include the correct `event_id`.
+- The UI supports event creation, cloning, selection, and comparison.
+- Metrics are fetched live for each event and displayed in a comparison dashboard.
+- All API calls are performed using the Supabase JS client.
+
+---

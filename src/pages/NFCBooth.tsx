@@ -4,6 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Smartphone, Wifi, MapPin, Bell, Users, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Progress } from '@/components/ui/progress';
+
+const MOCK_PARTICIPANT_ID = "00000000-0000-0000-0000-000000000000";
 
 const NFCBooth = () => {
   const features = [
@@ -28,6 +33,101 @@ const NFCBooth = () => {
       description: "Comprehensive analytics on booth visitor patterns and engagement"
     }
   ];
+
+  // NFC scan state
+  const [nfcSupported, setNfcSupported] = useState<boolean | null>(null);
+  const [nfcScanResult, setNfcScanResult] = useState<string | null>(null);
+  const [nfcScanError, setNfcScanError] = useState<string | null>(null);
+  const [nfcLoading, setNfcLoading] = useState(false);
+  // Analytics state
+  const [boothStats, setBoothStats] = useState<any[]>([]);
+  const [recentVisits, setRecentVisits] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // NFC feature detection
+  useEffect(() => {
+    setNfcSupported('NDEFReader' in window);
+  }, []);
+
+  // Fetch booth analytics
+  useEffect(() => {
+    async function fetchAnalytics() {
+      setLoading(true);
+      const { data } = await supabase
+        .from('engagement_logs')
+        .select('metadata, created_at, participant_id')
+        .eq('activity_type', 'nfc_booth_visit')
+        .order('created_at', { ascending: false });
+      // Aggregate booth stats
+      const boothMap: Record<string, { booth: string; count: number }> = {};
+      const visits: any[] = [];
+      if (data) {
+        data.forEach((log: any) => {
+          const meta = log.metadata || {};
+          const booth = meta.booth_name || meta.booth_id || meta.nfc_data || 'Unknown Booth';
+          if (!boothMap[booth]) boothMap[booth] = { booth, count: 0 };
+          boothMap[booth].count += 1;
+          visits.push({ booth, time: log.created_at, participant: log.participant_id });
+        });
+      }
+      setBoothStats(Object.values(boothMap).sort((a, b) => b.count - a.count));
+      setRecentVisits(visits.slice(0, 10));
+      setLoading(false);
+    }
+    fetchAnalytics();
+  }, [nfcScanResult]);
+
+  // NFC scan handler
+  async function handleNfcScan() {
+    setNfcScanError(null);
+    setNfcScanResult(null);
+    setNfcLoading(true);
+    if (!('NDEFReader' in window)) {
+      setNfcSupported(false);
+      setNfcLoading(false);
+      return;
+    }
+    try {
+      // @ts-ignore
+      const ndef = new window.NDEFReader();
+      await ndef.scan();
+      ndef.onreading = async (event: any) => {
+        let nfcData = '';
+        if (event.message && event.message.records.length > 0) {
+          const record = event.message.records[0];
+          if (record.recordType === 'text') {
+            const textDecoder = new TextDecoder(record.encoding || 'utf-8');
+            nfcData = textDecoder.decode(record.data);
+          } else {
+            nfcData = '[NFC record type: ' + record.recordType + ']';
+          }
+        } else {
+          nfcData = '[Unknown NFC tag]';
+        }
+        setNfcScanResult(nfcData);
+        setNfcLoading(false);
+        // Log booth visit to Supabase
+        const eventObj = {
+          activity_type: 'nfc_booth_visit',
+          participant_id: MOCK_PARTICIPANT_ID,
+          session_id: null,
+          metadata: { booth_name: nfcData, nfc_data: nfcData },
+          points: 5,
+        };
+        const { error } = await supabase.from('engagement_logs').insert([eventObj]);
+        if (error) {
+          setNfcScanError(error.message);
+        }
+      };
+      ndef.onerror = (err: any) => {
+        setNfcScanError(err?.message || String(err));
+        setNfcLoading(false);
+      };
+    } catch (err: any) {
+      setNfcScanError(err?.message || String(err));
+      setNfcLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,6 +195,59 @@ const NFCBooth = () => {
                 <p className="text-sm text-muted-foreground">Real-time data capture and analytics</p>
               </div>
             </div>
+          </Card>
+
+          {/* NFC Scan Section */}
+          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass mb-16">
+            <h2 className="text-2xl font-semibold mb-4">NFC Booth Visit</h2>
+            {nfcSupported === false && (
+              <div className="text-red-500 mb-2">Web NFC is not supported on this device/browser. Try Chrome for Android.</div>
+            )}
+            {nfcSupported && (
+              <Button onClick={handleNfcScan} disabled={nfcLoading} variant="brass" className="mb-4">
+                {nfcLoading ? 'Waiting for NFC tag...' : 'Start NFC Scan'}
+              </Button>
+            )}
+            {nfcScanResult && <div className="text-green-600 mb-2">Booth Scanned: {nfcScanResult}</div>}
+            {nfcScanError && <div className="text-red-500 mb-2">Error: {nfcScanError}</div>}
+            <div className="text-muted-foreground text-xs">Tap your phone on an NFC tag at a booth to log your visit.</div>
+          </Card>
+
+          {/* Booth Analytics */}
+          <Card className="p-8 bg-gradient-card border-accent/20 mb-16">
+            <h2 className="text-2xl font-semibold mb-6">Booth Visit Analytics</h2>
+            {loading ? <div className="text-brass">Loading analytics...</div> : (
+              <div className="grid md:grid-cols-2 gap-8">
+                <Card className="p-6 bg-accent/20 border-brass/20">
+                  <h3 className="font-semibold mb-4">Top Booths</h3>
+                  {boothStats.length === 0 ? <div className="text-muted-foreground">No booth visits yet.</div> : (
+                    <ol className="space-y-2">
+                      {boothStats.slice(0, 5).map((b, idx) => (
+                        <li key={b.booth} className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-brass/20 flex items-center justify-center font-bold text-brass">{idx + 1}</span>
+                          <span className="flex-1 font-medium">{b.booth}</span>
+                          <span className="text-xs text-muted-foreground">{b.count} visits</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </Card>
+                <Card className="p-6 bg-accent/20 border-brass/20">
+                  <h3 className="font-semibold mb-4">Recent Visits</h3>
+                  {recentVisits.length === 0 ? <div className="text-muted-foreground">No recent visits.</div> : (
+                    <ul className="space-y-2">
+                      {recentVisits.map((v, idx) => (
+                        <li key={idx} className="flex items-center gap-3">
+                          <span className="w-2 h-2 bg-brass rounded-full"></span>
+                          <span className="flex-1">{v.booth}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(v.time).toLocaleString()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </div>
+            )}
           </Card>
 
           {/* CTA */}

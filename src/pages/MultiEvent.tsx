@@ -2,131 +2,338 @@
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, Shield, Settings, Users, Calendar, Globe } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { BarChart3, Copy, Plus, Users, Activity, Cloud, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
 const MultiEvent = () => {
-  const features = [
-    {
-      icon: Copy,
-      title: "Event Cloning",
-      description: "Duplicate successful event configurations with one click for faster setup"
-    },
-    {
-      icon: Settings,
-      title: "Template Management",
-      description: "Create and manage reusable event templates for different event types"
-    },
-    {
-      icon: Shield,
-      title: "GDPR Compliance",
-      description: "Built-in privacy controls and data protection compliance toggles"
-    },
-    {
-      icon: Users,
-      title: "Multi-tenant Support",
-      description: "Manage multiple organizations and events from a single dashboard"
+  const [events, setEvents] = useState<any[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [newEvent, setNewEvent] = useState({ name: "", description: "", start_time: "", end_time: "" });
+  const [loading, setLoading] = useState(false);
+  const [compare, setCompare] = useState<string[]>([]);
+  const [metrics, setMetrics] = useState<any>({});
+  const [filter, setFilter] = useState('');
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editValues, setEditValues] = useState<any>({});
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<any[]>([]);
+
+  // Fetch events
+  useEffect(() => {
+    async function fetchEvents() {
+      const { data } = await supabase.from<any, any>("events").select("*").order("created_at", { ascending: false });
+      if (data) setEvents(data);
     }
-  ];
+    fetchEvents();
+  }, []);
+
+  // Fetch metrics for comparison
+  useEffect(() => {
+    async function fetchMetrics() {
+      if (compare.length === 0) return;
+      const out: any = {};
+      for (const eid of compare) {
+        const { count: attendance } = await supabase.from("participants").select("id", { count: "exact", head: true }).eq("event_id", eid);
+        const { count: engagement } = await supabase.from("engagement_logs").select("id", { count: "exact", head: true }).eq("event_id", eid);
+        const { count: sessions } = await supabase.from("sessions").select("id", { count: "exact", head: true }).eq("event_id", eid);
+        out[eid] = { attendance, engagement, sessions };
+      }
+      setMetrics(out);
+    }
+    fetchMetrics();
+  }, [compare]);
+
+  // Fetch chart data for compared events
+  useEffect(() => {
+    async function fetchChartData() {
+      if (compare.length === 0) return setChartData([]);
+      // For demo: generate mock time series data for each event
+      const days = Array.from({ length: 7 }, (_, i) => `Day ${i + 1}`);
+      const data = days.map((day, idx) => {
+        const row: any = { day };
+        compare.forEach(eid => {
+          // In real app, fetch actual time series from Supabase
+          row[`attendance_${eid}`] = Math.floor(Math.random() * 100 + 50 - idx * 5);
+          row[`engagement_${eid}`] = Math.floor(Math.random() * 200 + 100 - idx * 10);
+        });
+        return row;
+      });
+      setChartData(data);
+    }
+    fetchChartData();
+  }, [compare]);
+
+  async function handleCreate() {
+    setLoading(true);
+    const { data, error } = await supabase.from<any, any>("events").insert([
+      { ...newEvent, start_time: newEvent.start_time || null, end_time: newEvent.end_time || null }
+    ]).select();
+    setLoading(false);
+    if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
+    setNewEvent({ name: "", description: "", start_time: "", end_time: "" });
+  }
+
+  async function handleClone(eid: string) {
+    setLoading(true);
+    const orig = events.find((e) => e.id === eid);
+    if (!orig) return;
+    const { data, error } = await supabase.from<any, any>("events").insert([
+      { name: orig.name + " (Clone)", description: orig.description, start_time: orig.start_time, end_time: orig.end_time }
+    ]).select();
+    setLoading(false);
+    if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
+  }
+
+  async function handleEditSave() {
+    setLoading(true);
+    const { data, error } = await supabase.from<any, any>("events").update(editValues).eq('id', editingEvent.id).select();
+    setLoading(false);
+    if (data && data[0]) setEvents(prev => prev.map(e => e.id === editingEvent.id ? data[0] : e));
+    setEditingEvent(null);
+  }
+  async function handleDelete(eid: string) {
+    setLoading(true);
+    await supabase.from<any, any>("events").delete().eq('id', eid);
+    setLoading(false);
+    setEvents(prev => prev.filter(e => e.id !== eid));
+    setDeleteConfirm(null);
+  }
+
+  function handleExportCSV() {
+    if (!compare.length) return;
+    const headers = ['Event', 'Attendance', 'Engagement', 'Sessions'];
+    const rows = compare.map(eid => [
+      events.find(e => e.id === eid)?.name,
+      metrics[eid]?.attendance ?? '-',
+      metrics[eid]?.engagement ?? '-',
+      metrics[eid]?.sessions ?? '-',
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'event_comparison.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Filtered events
+  const filteredEvents = events.filter(e =>
+    (!filter || e.name.toLowerCase().includes(filter.toLowerCase()) || (e.description || '').toLowerCase().includes(filter.toLowerCase()))
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
       <main className="pt-20 px-4">
         <div className="container mx-auto max-w-6xl">
-          
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="w-20 h-20 bg-gradient-brass rounded-xl flex items-center justify-center mx-auto mb-6">
-              <Calendar className="w-10 h-10 text-primary-foreground" />
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-bold font-poppins mb-6">
-              Multi-Event <span className="bg-gradient-brass bg-clip-text text-transparent">Management</span>
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-bold font-poppins mb-4">
+              <span className="bg-gradient-brass bg-clip-text text-transparent">Multi-Event</span> Management
             </h1>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Efficiently manage multiple events with template systems, cloning capabilities, and comprehensive GDPR compliance tools.
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Manage, compare, and analyze multiple events with ease.
             </p>
           </div>
 
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={feature.title} className="p-8 bg-gradient-card border-accent/20 shadow-elegant hover:shadow-brass transition-all duration-300">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-brass/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-6 h-6 text-brass" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
-                      <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* GDPR Compliance */}
-          <Card className="p-8 bg-gradient-card border-brass/20 shadow-brass mb-16">
-            <div className="text-center mb-8">
-              <Shield className="w-16 h-16 text-brass mx-auto mb-4" />
-              <h2 className="text-2xl font-bold font-poppins mb-4">GDPR Compliance Built-in</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Comprehensive privacy controls ensure your events meet all data protection requirements 
-                with customizable consent management and data retention policies.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-4">
-                <div className="w-10 h-10 bg-brass/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Settings className="w-5 h-5 text-brass" />
-                </div>
-                <h3 className="font-semibold mb-2">Privacy Controls</h3>
-                <p className="text-sm text-muted-foreground">Granular data collection settings</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="w-10 h-10 bg-brass/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-5 h-5 text-brass" />
-                </div>
-                <h3 className="font-semibold mb-2">Consent Management</h3>
-                <p className="text-sm text-muted-foreground">Automated consent tracking</p>
-              </div>
-              <div className="text-center p-4">
-                <div className="w-10 h-10 bg-brass/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Globe className="w-5 h-5 text-brass" />
-                </div>
-                <h3 className="font-semibold mb-2">Regional Compliance</h3>
-                <p className="text-sm text-muted-foreground">Multi-region privacy standards</p>
-              </div>
+          {/* Create Event */}
+          <Card className="p-6 mb-8">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <Input
+                placeholder="Event Name"
+                value={newEvent.name}
+                onChange={e => setNewEvent(ev => ({ ...ev, name: e.target.value }))}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Description"
+                value={newEvent.description}
+                onChange={e => setNewEvent(ev => ({ ...ev, description: e.target.value }))}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Start Time (YYYY-MM-DDTHH:MM)"
+                value={newEvent.start_time}
+                onChange={e => setNewEvent(ev => ({ ...ev, start_time: e.target.value }))}
+                className="flex-1"
+                type="datetime-local"
+              />
+              <Input
+                placeholder="End Time (YYYY-MM-DDTHH:MM)"
+                value={newEvent.end_time}
+                onChange={e => setNewEvent(ev => ({ ...ev, end_time: e.target.value }))}
+                className="flex-1"
+                type="datetime-local"
+              />
+              <Button onClick={handleCreate} disabled={loading || !newEvent.name} variant="brass">
+                <Plus className="w-4 h-4 mr-2" /> Create Event
+              </Button>
             </div>
           </Card>
 
-          {/* Event Management Stats */}
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            <Card className="p-6 text-center bg-accent/20">
-              <div className="text-3xl font-bold text-brass mb-2">1-Click</div>
-              <p className="text-sm text-muted-foreground">Event duplication</p>
-            </Card>
-            <Card className="p-6 text-center bg-accent/20">
-              <div className="text-3xl font-bold text-brass mb-2">50+</div>
-              <p className="text-sm text-muted-foreground">Pre-built templates</p>
-            </Card>
-            <Card className="p-6 text-center bg-accent/20">
-              <div className="text-3xl font-bold text-brass mb-2">100%</div>
-              <p className="text-sm text-muted-foreground">GDPR compliant</p>
-            </Card>
+          {/* Filter Input */}
+          <Card className="p-4 mb-4 flex flex-col md:flex-row gap-4 items-center">
+            <Input
+              placeholder="Filter events by name or description..."
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              className="flex-1"
+            />
+          </Card>
+
+          {/* Event List */}
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
+            {filteredEvents.map((event) => (
+              <Card key={event.id} className={`p-6 border-2 ${selected === event.id ? "border-brass" : "border-accent/20"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 className="text-xl font-semibold mb-1">{event.name}</h3>
+                    <p className="text-muted-foreground text-sm mb-2">{event.description}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="icon" variant="outline" onClick={() => handleClone(event.id)} title="Clone Event">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant={selected === event.id ? "brass" : "outline"} onClick={() => setSelected(event.id)} title="Select Event">
+                      <BarChart3 className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant={compare.includes(event.id) ? "brass" : "outline"} onClick={() => setCompare(c => c.includes(event.id) ? c.filter(id => id !== event.id) : [...c, event.id])} title="Compare Event">
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="outline" onClick={() => { setEditingEvent(event); setEditValues(event); }} title="Edit Event">
+                      <Cloud className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="outline" onClick={() => setDeleteConfirm(event.id)} title="Delete Event">
+                      <Activity className="w-4 h-4 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-2">
+                  <span className="text-xs text-muted-foreground">Created: {event.created_at?.slice(0,10)}</span>
+                </div>
+              </Card>
+            ))}
           </div>
 
-          {/* CTA */}
-          <div className="text-center">
-            <Button variant="brass" size="lg" asChild>
-              <Link to="/get-started">Start Managing Events</Link>
-            </Button>
-          </div>
+          {/* Edit Modal */}
+          {editingEvent && (
+            <Dialog open={!!editingEvent} onOpenChange={v => { if (!v) setEditingEvent(null); }}>
+              <DialogContent>
+                <DialogTitle>Edit Event</DialogTitle>
+                <Input
+                  placeholder="Event Name"
+                  value={editValues.name}
+                  onChange={e => setEditValues(ev => ({ ...ev, name: e.target.value }))}
+                  className="mb-2"
+                />
+                <Input
+                  placeholder="Description"
+                  value={editValues.description}
+                  onChange={e => setEditValues(ev => ({ ...ev, description: e.target.value }))}
+                  className="mb-2"
+                />
+                <Input
+                  placeholder="Start Time"
+                  value={editValues.start_time}
+                  onChange={e => setEditValues(ev => ({ ...ev, start_time: e.target.value }))}
+                  className="mb-2"
+                  type="datetime-local"
+                />
+                <Input
+                  placeholder="End Time"
+                  value={editValues.end_time}
+                  onChange={e => setEditValues(ev => ({ ...ev, end_time: e.target.value }))}
+                  className="mb-4"
+                  type="datetime-local"
+                />
+                <div className="flex gap-4">
+                  <Button onClick={handleEditSave} variant="brass">Save</Button>
+                  <Button onClick={() => setEditingEvent(null)} variant="outline">Cancel</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          {/* Delete Confirm Modal */}
+          {deleteConfirm && (
+            <Dialog open={!!deleteConfirm} onOpenChange={v => { if (!v) setDeleteConfirm(null); }}>
+              <DialogContent>
+                <DialogTitle className="text-red-600">Delete Event?</DialogTitle>
+                <p className="mb-4">Are you sure you want to delete this event? This action cannot be undone.</p>
+                <div className="flex gap-4">
+                  <Button onClick={() => handleDelete(deleteConfirm!)} variant="destructive">Delete</Button>
+                  <Button onClick={() => setDeleteConfirm(null)} variant="outline">Cancel</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* Comparison Dashboard */}
+          {compare.length > 0 && (
+            <Card className="p-8 mb-16">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <h2 className="text-2xl font-semibold">Event Comparison</h2>
+                <Button onClick={handleExportCSV} variant="outline" size="sm">Export CSV</Button>
+              </div>
+              <div className="overflow-x-auto mb-8">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-brass">
+                      <th className="px-4 py-2 text-left">Event</th>
+                      <th className="px-4 py-2">Attendance</th>
+                      <th className="px-4 py-2">Engagement</th>
+                      <th className="px-4 py-2">Sessions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compare.map(eid => (
+                      <tr key={eid} className="border-b border-accent/20">
+                        <td className="px-4 py-2 font-semibold">{events.find(e => e.id === eid)?.name}</td>
+                        <td className="px-4 py-2 text-center">{metrics[eid]?.attendance ?? "-"}</td>
+                        <td className="px-4 py-2 text-center">{metrics[eid]?.engagement ?? "-"}</td>
+                        <td className="px-4 py-2 text-center">{metrics[eid]?.sessions ?? "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Charts */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Attendance Over Time</h3>
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    {compare.map(eid => (
+                      <Line key={eid} type="monotone" dataKey={`attendance_${eid}`} name={events.find(e => e.id === eid)?.name} stroke="#bfa76a" strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4">Engagement Over Time</h3>
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    {compare.map(eid => (
+                      <Line key={eid} type="monotone" dataKey={`engagement_${eid}`} name={events.find(e => e.id === eid)?.name} stroke="#ff9900" strokeWidth={2} dot={false} />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          )}
         </div>
       </main>
     </div>

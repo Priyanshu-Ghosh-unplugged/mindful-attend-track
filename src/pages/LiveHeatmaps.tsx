@@ -5,6 +5,44 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, TrendingUp, Eye, Navigation as NavigationIcon, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import HeatMapGrid from 'react-heatmap-grid';
+import { Dialog } from '@/components/ui/dialog';
+import { format } from 'date-fns';
+
+const GRID_SIZE = 10; // 10x10 grid for coordinates
+const COLOR_SCALE = [
+  '#f5f5f5', // 0
+  '#ffe5b4', // low
+  '#ffd580', // med-low
+  '#ffc04d', // med
+  '#ff9900', // high
+  '#ff6600', // very high
+  '#ff3300', // max
+];
+
+function getColor(value, max) {
+  if (!value || max === 0) return COLOR_SCALE[0];
+  const idx = Math.min(COLOR_SCALE.length - 1, Math.floor((value / max) * (COLOR_SCALE.length - 1)));
+  return COLOR_SCALE[idx];
+}
+
+const ACTIVITY_TYPES = [
+  { label: 'All', value: '' },
+  { label: 'Check-in', value: 'checkin' },
+  { label: 'Download', value: 'download' },
+  { label: 'NFC Scan', value: 'nfc_scan' },
+  { label: 'QR Scan', value: 'qr_scan' },
+  { label: 'Page Visit', value: 'page_visit' },
+  { label: 'Resource', value: 'resource_download' },
+  { label: 'Click', value: 'browser_click' },
+];
+const TIME_RANGES = [
+  { label: 'Last Hour', value: 60 * 60 * 1000 },
+  { label: 'Today', value: 24 * 60 * 60 * 1000 },
+  { label: 'Last 7 Days', value: 7 * 24 * 60 * 60 * 1000 },
+];
 
 const LiveHeatmaps = () => {
   const heatmapFeatures = [
@@ -57,6 +95,58 @@ const LiveHeatmaps = () => {
     }
   ];
 
+  const [heatmapData, setHeatmapData] = useState<number[][]>([]);
+  const [maxValue, setMaxValue] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [activityType, setActivityType] = useState('');
+  const [timeRange, setTimeRange] = useState(TIME_RANGES[0].value);
+  const [cellDetails, setCellDetails] = useState<Record<string, any[]>>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalCell, setModalCell] = useState<{ x: number; y: number } | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  useEffect(() => {
+    async function fetchHeatmap() {
+      setLoading(true);
+      const since = new Date(Date.now() - timeRange).toISOString();
+      let query = supabase
+        .from('engagement_logs')
+        .select('metadata, participant_id, activity_type, created_at')
+        .gte('created_at', since);
+      if (activityType) query = query.eq('activity_type', activityType);
+      const { data, error } = await query;
+      // Build a 10x10 grid
+      const grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
+      const cellMap: Record<string, any[]> = {};
+      if (data) {
+        data.forEach((log) => {
+          const meta = log.metadata;
+          if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+            const m = meta as Record<string, any>;
+            let x = m.x ?? m.coord_x ?? m.booth_x ?? null;
+            let y = m.y ?? m.coord_y ?? m.booth_y ?? null;
+            if (typeof x === 'number' && typeof y === 'number') {
+              x = Math.max(0, Math.min(GRID_SIZE - 1, Math.round(x)));
+              y = Math.max(0, Math.min(GRID_SIZE - 1, Math.round(y)));
+              grid[y][x] += 1;
+              const key = `${x},${y}`;
+              if (!cellMap[key]) cellMap[key] = [];
+              cellMap[key].push({ ...log, x, y });
+            }
+          }
+        });
+      }
+      setHeatmapData(grid);
+      setMaxValue(Math.max(1, ...grid.flat()));
+      setCellDetails(cellMap);
+      setLastRefresh(new Date());
+      setLoading(false);
+    }
+    fetchHeatmap();
+    const interval = setInterval(fetchHeatmap, 30000);
+    return () => clearInterval(interval);
+  }, [activityType, timeRange]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -75,66 +165,126 @@ const LiveHeatmaps = () => {
             </p>
           </div>
 
-          {/* Demo Heatmap */}
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-8 items-center justify-center">
+            <div>
+              <label className="block text-sm font-medium mb-1">Activity Type</label>
+              <select
+                className="rounded-lg border px-3 py-2 bg-background"
+                value={activityType}
+                onChange={e => setActivityType(e.target.value)}
+              >
+                {ACTIVITY_TYPES.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Time Range</label>
+              <select
+                className="rounded-lg border px-3 py-2 bg-background"
+                value={timeRange}
+                onChange={e => setTimeRange(Number(e.target.value))}
+              >
+                {TIME_RANGES.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span>Last updated {format(lastRefresh, 'HH:mm:ss')}</span>
+            </div>
+          </div>
+
+          {/* Real Heatmap Visualization */}
           <Card className="p-8 bg-gradient-card border-accent/20 mb-16">
-            <h2 className="text-2xl font-semibold mb-6">Live Heatmap Preview</h2>
-            
-            <div className="relative bg-accent/20 rounded-lg p-8 min-h-96">
-              <div className="absolute inset-4 bg-gradient-to-br from-brass/20 via-transparent to-brass/10 rounded-lg">
-                {/* Simulated heatmap visualization */}
-                <div className="relative h-full">
-                  {/* Hot zones */}
-                  <div className="absolute top-1/4 left-1/3 w-16 h-16 bg-red-500/30 rounded-full blur-sm animate-pulse"></div>
-                  <div className="absolute top-1/2 right-1/4 w-12 h-12 bg-orange-500/40 rounded-full blur-sm animate-pulse" style={{animationDelay: '0.5s'}}></div>
-                  <div className="absolute bottom-1/3 left-1/4 w-20 h-20 bg-yellow-500/30 rounded-full blur-sm animate-pulse" style={{animationDelay: '1s'}}></div>
-                  
-                  {/* Legend */}
-                  <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg p-4">
-                    <h3 className="font-semibold mb-3">Engagement Level</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-red-500 rounded"></div>
-                        <span>High (80-100%)</span>
+            <h2 className="text-2xl font-semibold mb-6">Live Engagement Heatmap</h2>
+            <div className="relative bg-accent/20 rounded-lg p-8 min-h-96 flex flex-col items-center justify-center">
+              {loading ? (
+                <div className="text-brass text-lg">Loading heatmap...</div>
+              ) : (
+                <div className="w-full max-w-2xl">
+                  <HeatMapGrid
+                    data={heatmapData}
+                    xLabels={Array.from({ length: GRID_SIZE }, (_, i) => `${i + 1}`)}
+                    yLabels={Array.from({ length: GRID_SIZE }, (_, i) => `${i + 1}`)}
+                    cellStyle={(_x, _y, value) => ({
+                      background: getColor(value, maxValue),
+                      borderRadius: '8px',
+                      transition: 'background 0.3s',
+                      boxShadow: value ? '0 2px 8px rgba(255,153,0,0.08)' : 'none',
+                      cursor: value ? 'pointer' : 'default',
+                    })}
+                    cellRender={(x, y, value) => value ? (
+                      <div
+                        className="font-bold text-xs text-brass group relative"
+                        onClick={() => {
+                          setModalCell({ x, y });
+                          setModalOpen(true);
+                        }}
+                        style={{ transition: 'transform 0.2s', transform: 'scale(1)' }}
+                      >
+                        {value}
+                        <span className="absolute left-1/2 -translate-x-1/2 top-8 z-10 hidden group-hover:block bg-background/90 text-xs text-foreground px-3 py-2 rounded shadow-lg border mt-1 min-w-[120px]">
+                          <span className="block font-semibold">{value} events</span>
+                          <span className="block">Cell [{x + 1}, {y + 1}]</span>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                        <span>Medium (50-79%)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                        <span>Low (20-49%)</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Live indicator */}
-                  <div className="absolute top-4 left-4 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">Live</span>
-                  </div>
+                    ) : null}
+                    xLabelsStyle={() => ({ color: '#bfa76a', fontWeight: 600 })}
+                    yLabelsStyle={() => ({ color: '#bfa76a', fontWeight: 600 })}
+                    square
+                  />
+                </div>
+              )}
+              <div className="absolute top-4 left-4 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium">Live</span>
+              </div>
+              <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Engagement Intensity</h3>
+                <div className="flex gap-2 items-center">
+                  {COLOR_SCALE.map((color, idx) => (
+                    <div key={color} className="w-6 h-4 rounded" style={{ background: color, border: '1px solid #eee' }}></div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs mt-1 text-muted-foreground">
+                  <span>Low</span>
+                  <span>High</span>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-6 grid md:grid-cols-4 gap-4">
-              <div className="text-center p-4 bg-accent/30 rounded-lg">
-                <div className="text-2xl font-bold text-brass">127</div>
-                <div className="text-sm text-muted-foreground">Active Participants</div>
-              </div>
-              <div className="text-center p-4 bg-accent/30 rounded-lg">
-                <div className="text-2xl font-bold text-brass">3.2m</div>
-                <div className="text-sm text-muted-foreground">Avg. Dwell Time</div>
-              </div>
-              <div className="text-center p-4 bg-accent/30 rounded-lg">
-                <div className="text-2xl font-bold text-brass">85%</div>
-                <div className="text-sm text-muted-foreground">Space Utilization</div>
-              </div>
-              <div className="text-center p-4 bg-accent/30 rounded-lg">
-                <div className="text-2xl font-bold text-brass">12</div>
-                <div className="text-sm text-muted-foreground">Hot Zones</div>
-              </div>
-            </div>
           </Card>
+
+          {/* Drilldown Modal */}
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            {modalCell && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-background rounded-lg shadow-xl p-8 max-w-lg w-full relative">
+                  <button className="absolute top-2 right-2 text-brass" onClick={() => setModalOpen(false)}>&times;</button>
+                  <h3 className="text-xl font-semibold mb-4">Cell [{modalCell.x + 1}, {modalCell.y + 1}] Details</h3>
+                  <div className="max-h-80 overflow-y-auto">
+                    {(cellDetails[`${modalCell.x},${modalCell.y}`] || []).length === 0 ? (
+                      <div className="text-muted-foreground">No events for this cell.</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {cellDetails[`${modalCell.x},${modalCell.y}`].map((log, idx) => (
+                          <li key={idx} className="p-3 rounded bg-accent/30 border-l-4 border-brass">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-brass">{log.activity_type}</span>
+                              <span className="text-xs text-muted-foreground">{format(new Date(log.created_at), 'PPpp')}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">Participant: {log.participant_id}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </Dialog>
 
           {/* Features Grid */}
           <div className="grid md:grid-cols-2 gap-8 mb-16">

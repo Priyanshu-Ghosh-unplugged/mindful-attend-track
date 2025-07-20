@@ -7,9 +7,7 @@
 
 ---
 
-<p align="center">
-  <img src="src/assets/mandala-background.png" alt="Mindful Attend Track" width="200"/>
-</p>
+
 
 <h2 align="center">Mindful Attend Track</h2>
 

@@ -4,13 +4,27 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { MessageSquare, Send, Users, Shield, Zap, Settings } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { MessageSquare, Send, Users, Shield, Zap, Settings, MoreHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
+
+interface Message {
+  id: number;
+  user: string;
+  message: string;
+  time: string;
+  avatar: string;
+  timestamp: number;
+  isBot?: boolean;
+  isCurrentUser?: boolean;
+}
 
 const Chats = () => {
   const [message, setMessage] = useState("");
   const [activeChannel, setActiveChannel] = useState("general");
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [currentUser] = useState("You");
 
   const channels = [
     { id: "general", name: "General Discussion", members: 127, unread: 3 },
@@ -19,13 +33,151 @@ const Chats = () => {
     { id: "sponsors", name: "Sponsor Booth Chat", members: 45, unread: 2 }
   ];
 
-  const messages = [
-    { user: "Sarah Chen", message: "Has anyone tried the new React workshop? Really impressed with the content!", time: "2:34 PM", avatar: "SC" },
-    { user: "Mike Rodriguez", message: "The AI session was mind-blowing! 🤯 Anyone want to discuss implementation ideas?", time: "2:36 PM", avatar: "MR" },
-    { user: "AI Moderator", message: "I can help connect people interested in AI implementation. Would you like me to create a group?", time: "2:37 PM", avatar: "AI", isBot: true },
-    { user: "Lisa Wang", message: "Count me in! I'm working on similar projects", time: "2:38 PM", avatar: "LW" },
-    { user: "You", message: "This is exactly what I was looking for!", time: "2:39 PM", avatar: "YU", isCurrentUser: true }
+  const [messages, setMessages] = useState<Message[]>([
+    { 
+      id: 1,
+      user: "Sarah Chen", 
+      message: "Has anyone tried the new React workshop? Really impressed with the content!", 
+      time: "2:34 PM", 
+      avatar: "SC",
+      timestamp: Date.now() - 300000
+    },
+    { 
+      id: 2,
+      user: "Mike Rodriguez", 
+      message: "The AI session was mind-blowing! 🤯 Anyone want to discuss implementation ideas?", 
+      time: "2:36 PM", 
+      avatar: "MR",
+      timestamp: Date.now() - 240000
+    },
+    { 
+      id: 3,
+      user: "AI Moderator", 
+      message: "I can help connect people interested in AI implementation. Would you like me to create a group?", 
+      time: "2:37 PM", 
+      avatar: "AI", 
+      isBot: true,
+      timestamp: Date.now() - 180000
+    },
+    { 
+      id: 4,
+      user: "Lisa Wang", 
+      message: "Count me in! I'm working on similar projects", 
+      time: "2:38 PM", 
+      avatar: "LW",
+      timestamp: Date.now() - 120000
+    }
+  ]);
+
+  const onlineUsers = [
+    { name: "Sarah Chen", avatar: "SC", status: "online", lastSeen: "now" },
+    { name: "Mike Rodriguez", avatar: "MR", status: "online", lastSeen: "now" },
+    { name: "Lisa Wang", avatar: "LW", status: "online", lastSeen: "now" },
+    { name: "Alex Kim", avatar: "AK", status: "online", lastSeen: "now" },
+    { name: "Emma Davis", avatar: "ED", status: "online", lastSeen: "now" },
+    { name: "David Wilson", avatar: "DW", status: "online", lastSeen: "now" }
   ];
+
+
+
+  // Simulate typing indicators
+  useEffect(() => {
+    const typingInterval = setInterval(() => {
+      if (Math.random() > 0.7) {
+        const randomUser = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
+        if (!typingUsers.includes(randomUser.name)) {
+          setTypingUsers(prev => [...prev, randomUser.name]);
+          setTimeout(() => {
+            setTypingUsers(prev => prev.filter(user => user !== randomUser.name));
+          }, 3000);
+        }
+      }
+    }, 5000);
+
+    return () => clearInterval(typingInterval);
+  }, [typingUsers, onlineUsers]);
+
+  // Simulate AI responses
+  useEffect(() => {
+    const aiResponseInterval = setInterval(() => {
+      if (Math.random() > 0.8 && messages.length > 0) {
+        const aiResponses = [
+          "I can help you with that! Would you like me to create a dedicated channel for this topic?",
+          "Great question! I've noticed several participants with similar interests. Should I introduce you?",
+          "Based on the discussion, I think you might find the upcoming workshop on this topic helpful.",
+          "I can see there's a lot of interest in this area. Let me organize a focused discussion group.",
+          "That's an excellent point! I've added this to our event insights for future reference."
+        ];
+        
+        const newMessage = {
+          id: Date.now(),
+          user: "AI Moderator",
+          message: aiResponses[Math.floor(Math.random() * aiResponses.length)],
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          avatar: "AI",
+          isBot: true,
+          timestamp: Date.now()
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+      }
+    }, 15000);
+
+    return () => clearInterval(aiResponseInterval);
+  }, [messages.length]);
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      const newMessage = {
+        id: Date.now(),
+        user: currentUser,
+        message: message.trim(),
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        avatar: "YU",
+        isCurrentUser: true,
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => [...prev, newMessage]);
+      setMessage("");
+      setIsTyping(false);
+      
+      // Simulate other users responding
+      setTimeout(() => {
+        const responses = [
+          "That's a great point!",
+          "I agree with you on that.",
+          "Thanks for sharing!",
+          "Interesting perspective!",
+          "I'd love to discuss this further.",
+          "This is exactly what I was thinking!",
+          "Great insight! 👍",
+          "I'm learning so much from this discussion!"
+        ];
+        
+        const randomUser = onlineUsers[Math.floor(Math.random() * onlineUsers.length)];
+        const response = responses[Math.floor(Math.random() * responses.length)];
+        
+        const responseMessage = {
+          id: Date.now() + 1,
+          user: randomUser.name,
+          message: response,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          avatar: randomUser.avatar,
+          timestamp: Date.now()
+        };
+        
+        setMessages(prev => [...prev, responseMessage]);
+      }, 2000 + Math.random() * 3000);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   const chatFeatures = [
     {
@@ -90,8 +242,8 @@ const Chats = () => {
 
               {/* Messages */}
               <div className="p-6 h-96 overflow-y-auto space-y-4">
-                {messages.map((msg, index) => (
-                  <div key={index} className={`flex gap-3 ${msg.isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`flex gap-3 ${msg.isCurrentUser ? 'flex-row-reverse' : ''}`}>
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                       msg.isBot ? 'bg-brass text-primary-foreground' : 
                       msg.isCurrentUser ? 'bg-blue-500 text-white' : 
@@ -115,6 +267,28 @@ const Chats = () => {
                     </div>
                   </div>
                 ))}
+                
+                {/* Typing Indicators */}
+                {typingUsers.length > 0 && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-xs font-bold">
+                      {typingUsers[0].split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium">{typingUsers[0]}</span>
+                        <span className="text-xs text-muted-foreground">typing...</span>
+                      </div>
+                      <div className="text-sm p-3 rounded-lg bg-accent">
+                        <div className="flex gap-1">
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Message Input */}
@@ -123,13 +297,29 @@ const Chats = () => {
                   <Input
                     placeholder="Type your message..."
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => {
+                      setMessage(e.target.value);
+                      if (!isTyping) {
+                        setIsTyping(true);
+                      }
+                    }}
+                    onKeyPress={handleKeyPress}
                     className="flex-1"
                   />
-                  <Button variant="brass" size="icon">
+                  <Button 
+                    variant="brass" 
+                    size="icon"
+                    onClick={handleSendMessage}
+                    disabled={!message.trim()}
+                  >
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
+                {isTyping && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    You are typing...
+                  </div>
+                )}
               </div>
             </Card>
 
@@ -166,18 +356,20 @@ const Chats = () => {
 
               {/* Online Users */}
               <Card className="p-6 bg-gradient-card border-accent/20">
-                <h3 className="font-semibold mb-4">Online Now</h3>
+                <h3 className="font-semibold mb-4">Online Now ({onlineUsers.length})</h3>
                 <div className="space-y-3">
-                  {['Sarah Chen', 'Mike Rodriguez', 'Lisa Wang', 'Alex Kim'].map((user, index) => (
+                  {onlineUsers.map((user, index) => (
                     <div key={index} className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-xs font-bold">
-                        {user.split(' ').map(n => n[0]).join('')}
+                        {user.avatar}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-medium">{user}</div>
-                        <div className="text-xs text-muted-foreground">Active now</div>
+                        <div className="text-sm font-medium">{user.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {typingUsers.includes(user.name) ? 'typing...' : user.lastSeen}
+                        </div>
                       </div>
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     </div>
                   ))}
                 </div>

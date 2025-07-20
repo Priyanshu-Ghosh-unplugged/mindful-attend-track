@@ -133,7 +133,7 @@ const DynamicScoring = () => {
           <Card className="p-8 bg-gradient-card border-accent/20 mb-16">
             <h2 className="text-2xl font-semibold mb-6">Live Scoring Dashboard</h2>
             
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
               <div className="text-center p-6 bg-accent/20 rounded-lg">
                 <div className="text-3xl font-bold text-brass mb-2">87</div>
                 <div className="text-sm text-muted-foreground mb-4">Current Score</div>
@@ -165,6 +165,124 @@ const DynamicScoring = () => {
                 <div className="text-lg font-semibold mb-2">Resources Used</div>
                 <div className="text-2xl font-bold">15</div>
                 <div className="text-sm text-muted-foreground">Downloads & Links</div>
+              </div>
+            </div>
+
+            {/* Participants Leaderboard */}
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold mb-4">Event Participants Leaderboard</h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    name: "Sarah Chen",
+                    role: "Software Engineer",
+                    company: "TechCorp",
+                    score: 94,
+                    attendance: 95,
+                    participation: 92,
+                    resources: 89,
+                    sessions: "11/12",
+                    lastActivity: "VR Workshop"
+                  },
+                  {
+                    name: "Marcus Rodriguez",
+                    role: "Product Manager",
+                    company: "InnovateLab",
+                    score: 87,
+                    attendance: 92,
+                    participation: 85,
+                    resources: 78,
+                    sessions: "8/12",
+                    lastActivity: "AI Workshop"
+                  },
+                  {
+                    name: "Emily Watson",
+                    role: "UX Designer",
+                    company: "DesignFlow",
+                    score: 82,
+                    attendance: 88,
+                    participation: 79,
+                    resources: 75,
+                    sessions: "9/12",
+                    lastActivity: "Design Sprint"
+                  },
+                  {
+                    name: "David Kim",
+                    role: "Data Scientist",
+                    company: "DataViz",
+                    score: 79,
+                    attendance: 85,
+                    participation: 76,
+                    resources: 72,
+                    sessions: "7/12",
+                    lastActivity: "Analytics Session"
+                  },
+                  {
+                    name: "Lisa Thompson",
+                    role: "Marketing Director",
+                    company: "GrowthCo",
+                    score: 76,
+                    attendance: 82,
+                    participation: 73,
+                    resources: 68,
+                    sessions: "6/12",
+                    lastActivity: "Strategy Workshop"
+                  },
+                  {
+                    name: "Alex Johnson",
+                    role: "Frontend Developer",
+                    company: "WebTech",
+                    score: 73,
+                    attendance: 78,
+                    participation: 70,
+                    resources: 65,
+                    sessions: "5/12",
+                    lastActivity: "Coding Session"
+                  }
+                ].map((participant, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-brass/20 rounded-full flex items-center justify-center font-semibold text-brass">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-semibold">{participant.name}</div>
+                        <div className="text-sm text-muted-foreground">{participant.role} at {participant.company}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-6">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-brass">{participant.score}</div>
+                        <div className="text-xs text-muted-foreground">Score</div>
+                      </div>
+                      
+                      <div className="hidden md:block text-sm space-y-1">
+                        <div className="flex justify-between gap-4">
+                          <span>Att:</span>
+                          <span className="text-brass">{participant.attendance}%</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span>Part:</span>
+                          <span className="text-brass">{participant.participation}%</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span>Res:</span>
+                          <span className="text-brass">{participant.resources}%</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center">
+                        <div className="text-sm font-semibold">{participant.sessions}</div>
+                        <div className="text-xs text-muted-foreground">Sessions</div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className="text-sm font-medium">Last: {participant.lastActivity}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </Card>

@@ -16,6 +16,9 @@ interface Event {
   end_date: string;
   location: string;
   status: string;
+  organizer_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const Demo = () => {
@@ -54,12 +57,16 @@ const Demo = () => {
       start_date: new Date().toISOString(),
       end_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
       location: "San Francisco Convention Center",
-      description: "Annual technology conference"
+      description: "Annual technology conference",
+      status: "active",
+      organizer_id: "demo",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
     participants: participants.length > 0 ? participants : [
-      { id: '1', user_id: '1', engagement_score: 95, status: 'Active', event_id: 'demo', attendance_score: 8, participation_score: 6, resource_score: 5 },
-      { id: '2', user_id: '2', engagement_score: 87, status: 'Active', event_id: 'demo', attendance_score: 6, participation_score: 4, resource_score: 3 },
-      { id: '3', user_id: '3', engagement_score: 76, status: 'Idle', event_id: 'demo', attendance_score: 5, participation_score: 2, resource_score: 2 },
+      { id: '1', user_id: '1', engagement_score: 95, status: 'active', event_id: 'demo', attendance_score: 8, participation_score: 6, resource_score: 5, created_at: '', updated_at: '' },
+      { id: '2', user_id: '2', engagement_score: 87, status: 'active', event_id: 'demo', attendance_score: 6, participation_score: 4, resource_score: 3, created_at: '', updated_at: '' },
+      { id: '3', user_id: '3', engagement_score: 76, status: 'registered', event_id: 'demo', attendance_score: 5, participation_score: 2, resource_score: 2, created_at: '', updated_at: '' },
     ],
     sessions: [
       { name: "AI & Machine Learning Keynote", participants: 432, engagement: 94 },
@@ -167,7 +174,7 @@ const Demo = () => {
                     <div className="text-right">
                       <div className="font-semibold text-brass">{participant.engagement_score}</div>
                       <Badge 
-                        variant={participant.status === 'Active' ? 'default' : 'secondary'}
+                        variant={participant.status === 'active' ? 'default' : 'secondary'}
                         className="text-xs"
                       >
                         {participant.status}

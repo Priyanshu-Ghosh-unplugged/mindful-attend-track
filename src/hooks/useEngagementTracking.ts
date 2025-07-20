@@ -23,6 +23,8 @@ interface Participant {
   participation_score: number;
   resource_score: number;
   status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export const useEngagementTracking = (eventId?: string) => {

@@ -16,6 +16,9 @@ interface Event {
   end_date: string;
   location: string;
   status: string;
+  organizer_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Participant {
@@ -25,6 +28,7 @@ interface Participant {
   attendance_score: number;
   participation_score: number;
   resource_score: number;
+  status: string;
   profiles: {
     full_name: string;
     email: string;

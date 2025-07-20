@@ -9,15 +9,28 @@ import { BarChart3, Copy, Plus, Users, Activity, Cloud, RefreshCw } from "lucide
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
+interface Event {
+  id: string;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  status: string;
+  organizer_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const MultiEvent = () => {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState({ name: "", description: "", start_time: "", end_time: "" });
   const [loading, setLoading] = useState(false);
   const [compare, setCompare] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<any>({});
   const [filter, setFilter] = useState('');
-  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [editValues, setEditValues] = useState<any>({});
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [chartData, setChartData] = useState<any[]>([]);
@@ -25,7 +38,7 @@ const MultiEvent = () => {
   // Fetch events
   useEffect(() => {
     async function fetchEvents() {
-      const { data } = await supabase.from<any, any>("events").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
       if (data) setEvents(data);
     }
     fetchEvents();
@@ -69,8 +82,8 @@ const MultiEvent = () => {
 
   async function handleCreate() {
     setLoading(true);
-    const { data, error } = await supabase.from<any, any>("events").insert([
-      { ...newEvent, start_time: newEvent.start_time || null, end_time: newEvent.end_time || null }
+    const { data, error } = await supabase.from("events").insert([
+      { ...newEvent, start_date: newEvent.start_time || null, end_date: newEvent.end_time || null }
     ]).select();
     setLoading(false);
     if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
@@ -81,8 +94,8 @@ const MultiEvent = () => {
     setLoading(true);
     const orig = events.find((e) => e.id === eid);
     if (!orig) return;
-    const { data, error } = await supabase.from<any, any>("events").insert([
-      { name: orig.name + " (Clone)", description: orig.description, start_time: orig.start_time, end_time: orig.end_time }
+    const { data, error } = await supabase.from("events").insert([
+      { name: orig.name + " (Clone)", description: orig.description, start_date: orig.start_date, end_date: orig.end_date }
     ]).select();
     setLoading(false);
     if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
@@ -90,14 +103,14 @@ const MultiEvent = () => {
 
   async function handleEditSave() {
     setLoading(true);
-    const { data, error } = await supabase.from<any, any>("events").update(editValues).eq('id', editingEvent.id).select();
+    const { data, error } = await supabase.from("events").update(editValues).eq('id', editingEvent!.id).select();
     setLoading(false);
-    if (data && data[0]) setEvents(prev => prev.map(e => e.id === editingEvent.id ? data[0] : e));
+    if (data && data[0]) setEvents(prev => prev.map(e => e.id === editingEvent!.id ? data[0] : e));
     setEditingEvent(null);
   }
   async function handleDelete(eid: string) {
     setLoading(true);
-    await supabase.from<any, any>("events").delete().eq('id', eid);
+    await supabase.from("events").delete().eq('id', eid);
     setLoading(false);
     setEvents(prev => prev.filter(e => e.id !== eid));
     setDeleteConfirm(null);
@@ -228,26 +241,26 @@ const MultiEvent = () => {
                 <Input
                   placeholder="Event Name"
                   value={editValues.name}
-                  onChange={e => setEditValues(ev => ({ ...ev, name: e.target.value }))}
+                  onChange={e => setEditValues((ev: any) => ({ ...ev, name: e.target.value }))}
                   className="mb-2"
                 />
                 <Input
                   placeholder="Description"
                   value={editValues.description}
-                  onChange={e => setEditValues(ev => ({ ...ev, description: e.target.value }))}
+                  onChange={e => setEditValues((ev: any) => ({ ...ev, description: e.target.value }))}
                   className="mb-2"
                 />
                 <Input
                   placeholder="Start Time"
-                  value={editValues.start_time}
-                  onChange={e => setEditValues(ev => ({ ...ev, start_time: e.target.value }))}
+                  value={editValues.start_date}
+                  onChange={e => setEditValues((ev: any) => ({ ...ev, start_date: e.target.value }))}
                   className="mb-2"
                   type="datetime-local"
                 />
                 <Input
                   placeholder="End Time"
-                  value={editValues.end_time}
-                  onChange={e => setEditValues(ev => ({ ...ev, end_time: e.target.value }))}
+                  value={editValues.end_date}
+                  onChange={e => setEditValues((ev: any) => ({ ...ev, end_date: e.target.value }))}
                   className="mb-4"
                   type="datetime-local"
                 />

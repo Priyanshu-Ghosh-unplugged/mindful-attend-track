@@ -1,35 +1,196 @@
+
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Users, Target, Clock, TrendingUp, Activity } from "lucide-react";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+interface Event {
+  id: string;
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  location: string;
+  status: string;
+}
+
+interface Participant {
+  id: string;
+  user_id: string;
+  engagement_score: number;
+  attendance_score: number;
+  participation_score: number;
+  resource_score: number;
+  profiles: {
+    full_name: string;
+    email: string;
+  };
+}
+
+interface Session {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  session_type: string;
+}
 
 const Dashboard = () => {
-  const [participants, setParticipants] = useState<any[]>([]);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [stats, setStats] = useState({
+    totalParticipants: 0,
+    avgEngagement: 0,
+    activeSessions: 0,
+    resourcesDownloaded: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchParticipants() {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('participants')
-        .select('id, user_id, engagement_score, attendance_score, participation_score, resource_score')
-        .order('engagement_score', { ascending: false });
-      if (!error && data) {
-        setParticipants(data);
-      }
+    if (!user) return;
+    fetchDashboardData();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('dashboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, () => {
+        fetchParticipants();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'engagement_logs' }, () => {
+        fetchParticipants();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchEvents(),
+        fetchParticipants(),
+        fetchSessions(),
+        fetchStats()
+      ]);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
     }
-    fetchParticipants();
-  }, []);
+  };
 
-  const sessionData = [
-    { name: "AI Workshop", attendance: 45, engagement: 89 },
-    { name: "React Masterclass", attendance: 38, engagement: 76 },
-    { name: "UX Design Lab", attendance: 52, engagement: 94 },
-    { name: "Data Science 101", attendance: 41, engagement: 81 }
-  ];
+  const fetchEvents = async () => {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('organizer_id', user?.id)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    setEvents(data || []);
+  };
+
+  const fetchParticipants = async () => {
+    const { data, error } = await supabase
+      .from('participants')
+      .select(`
+        *,
+        profiles:user_id (
+          full_name,
+          email
+        )
+      `)
+      .order('engagement_score', { ascending: false })
+      .limit(10);
+    
+    if (error) throw error;
+    setParticipants(data || []);
+  };
+
+  const fetchSessions = async () => {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .order('start_time', { ascending: true })
+      .limit(5);
+    
+    if (error) throw error;
+    setSessions(data || []);
+  };
+
+  const fetchStats = async () => {
+    try {
+      // Get total participants
+      const { count: participantCount } = await supabase
+        .from('participants')
+        .select('*', { count: 'exact', head: true });
+
+      // Get average engagement
+      const { data: engagementData } = await supabase
+        .from('participants')
+        .select('engagement_score');
+      
+      const avgEngagement = engagementData?.length 
+        ? Math.round(engagementData.reduce((sum, p) => sum + (p.engagement_score || 0), 0) / engagementData.length)
+        : 0;
+
+      // Get active sessions count
+      const now = new Date().toISOString();
+      const { count: activeSessionCount } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .lte('start_time', now)
+        .gte('end_time', now);
+
+      // Get resource downloads
+      const { data: resourceData } = await supabase
+        .from('engagement_logs')
+        .select('points')
+        .eq('activity_type', 'resource_download');
+      
+      const resourcesDownloaded = resourceData?.reduce((sum, log) => sum + (log.points || 0), 0) || 0;
+
+      setStats({
+        totalParticipants: participantCount || 0,
+        avgEngagement,
+        activeSessions: activeSessionCount || 0,
+        resourcesDownloaded
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="pt-20 px-4">
+          <div className="container mx-auto max-w-7xl flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brass mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading dashboard...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,7 +215,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Participants</p>
-                  <p className="text-3xl font-bold text-brass">247</p>
+                  <p className="text-3xl font-bold text-brass">{stats.totalParticipants}</p>
                 </div>
                 <Users className="w-8 h-8 text-brass" />
               </div>
@@ -64,7 +225,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Engagement</p>
-                  <p className="text-3xl font-bold text-brass">84%</p>
+                  <p className="text-3xl font-bold text-brass">{stats.avgEngagement}</p>
                 </div>
                 <Target className="w-8 h-8 text-brass" />
               </div>
@@ -74,7 +235,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Active Sessions</p>
-                  <p className="text-3xl font-bold text-brass">12</p>
+                  <p className="text-3xl font-bold text-brass">{stats.activeSessions}</p>
                 </div>
                 <Activity className="w-8 h-8 text-brass" />
               </div>
@@ -83,23 +244,28 @@ const Dashboard = () => {
             <Card className="p-6 bg-gradient-card border-accent/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Resources Downloaded</p>
-                  <p className="text-3xl font-bold text-brass">1,234</p>
+                  <p className="text-sm text-muted-foreground">Resource Downloads</p>
+                  <p className="text-3xl font-bold text-brass">{stats.resourcesDownloaded}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-brass" />
               </div>
             </Card>
           </div>
 
-          {/* Top Participants (dynamic) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Top Participants */}
             <Card className="p-6 bg-gradient-card border-accent/20">
               <h3 className="text-xl font-semibold font-poppins mb-6 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-brass" />
                 Top Participants
               </h3>
-              {loading ? (
-                <div>Loading...</div>
+              {participants.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No participants yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Participants will appear here once they join your events
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {participants.map((participant, index) => (
@@ -109,14 +275,18 @@ const Dashboard = () => {
                           {index + 1}
                         </div>
                         <div>
-                          <p className="font-medium">{participant.user_id}</p>
-                          <p className="text-sm text-muted-foreground">Engagement: {participant.engagement_score ?? 0}</p>
+                          <p className="font-medium">
+                            {participant.profiles?.full_name || participant.profiles?.email || 'Anonymous User'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Total Score: {participant.engagement_score}
+                          </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-brass">{participant.engagement_score ?? 0}</p>
+                        <p className="text-lg font-bold text-brass">{participant.engagement_score}</p>
                         <div className="text-xs text-muted-foreground">
-                          Attendance: {participant.attendance_score ?? 0} | Participation: {participant.participation_score ?? 0} | Resources: {participant.resource_score ?? 0}
+                          A: {participant.attendance_score} | P: {participant.participation_score} | R: {participant.resource_score}
                         </div>
                       </div>
                     </div>
@@ -125,43 +295,46 @@ const Dashboard = () => {
               )}
             </Card>
 
-            {/* Session Performance */}
+            {/* Recent Sessions */}
             <Card className="p-6 bg-gradient-card border-accent/20">
               <h3 className="text-xl font-semibold font-poppins mb-6 flex items-center">
                 <Clock className="w-5 h-5 mr-2 text-brass" />
-                Session Performance
+                Recent Sessions
               </h3>
-              <div className="space-y-4">
-                {sessionData.map((session) => (
-                  <div key={session.name} className="p-4 bg-background/50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{session.name}</h4>
-                      <span className="text-sm text-brass">{session.engagement}% engaged</span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                      <span>{session.attendance} attendees</span>
-                      <div className="flex-1">
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-gradient-brass h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${session.engagement}%` }}
-                          ></div>
-                        </div>
+              {sessions.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No sessions scheduled</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Create your first event to start adding sessions
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sessions.map((session) => (
+                    <div key={session.id} className="p-4 bg-background/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-medium">{session.title}</h4>
+                        <span className="text-sm text-brass capitalize">{session.session_type}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(session.start_time).toLocaleDateString()} • {' '}
+                        {new Date(session.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {' '}
+                        {new Date(session.end_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </div>
 
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="brass" size="lg">
-              Export Analytics
+            <Button variant="brass" size="lg" onClick={() => window.location.href = '/start-tracking'}>
+              Create New Event
             </Button>
-            <Button variant="outline" size="lg">
-              Configure Tracking
+            <Button variant="outline" size="lg" onClick={fetchDashboardData}>
+              Refresh Data
             </Button>
           </div>
         </div>

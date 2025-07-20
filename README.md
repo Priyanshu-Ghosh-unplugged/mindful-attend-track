@@ -1,153 +1,190 @@
-# Welcome to your Lovable project
+# Mindful Attend Track
 
-## Project info
+![License](https://img.shields.io/badge/license-MIT-brightgreen)
+![Status](https://img.shields.io/badge/status-active-success)
+![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)
+![Built With](https://img.shields.io/badge/built%20with-React%20%7C%20TypeScript%20%7C%20Supabase-blue)
 
-**URL**: https://lovable.dev/projects/b5daa3b3-f504-432c-b509-6e5ee0f61dfc
+---
 
-## How can I edit this code?
+<p align="center">
+  <img src="src/assets/mandala-background.png" alt="Mindful Attend Track" width="200"/>
+</p>
 
-There are several ways of editing your application.
+<h2 align="center">Mindful Attend Track</h2>
 
-**Use Lovable**
+<p align="center">
+  <b>AI-powered, real-time event engagement, tracking, and analytics platform for modern hybrid and virtual events.</b>
+</p>
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b5daa3b3-f504-432c-b509-6e5ee0f61dfc) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Overview
 
-**Use your preferred IDE**
+Mindful Attend Track is a next-generation event analytics and engagement platform designed for conferences, workshops, expos, and hybrid/virtual events. It provides:
+- Real-time participant tracking (QR, NFC, browser, downloads, VR)
+- Dynamic engagement scoring and leaderboards
+- Live chat with AI moderation and smart suggestions
+- Advanced VR analytics (gaze, interaction, device, sponsor ROI)
+- Unified dashboards for actionable insights
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## ✨ Features
 
-Follow these steps:
+### 🏆 Dynamic Scoring & Leaderboards
+- Real-time engagement scoring (attendance, participation, resources)
+- Adaptive scoring algorithms for different event types
+- Live participant leaderboard with detailed breakdowns
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 📊 Multi-Modal Tracking
+- QR code, RFID/NFC, browser, and download-based tracking
+- Real-time activity feed and unified analytics dashboard
+- Session attendance, location heatmaps, device usage
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🎮 VR Metrics & Analytics
+- Gaze tracking, interaction analytics, and session duration
+- Device compatibility and performance monitoring
+- Sponsor engagement and ROI tracking in VR
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 💬 Live Chat & Communication
+- Real-time chat with channels, AI moderation, and typing indicators
+- Smart suggestions and networking facilitation
+- Online user presence and activity simulation
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 📈 Unified Analytics
+- Multi-tab dashboards for overview, live events, sessions, analytics
+- Real-time data visualization and performance metrics
+- Responsive, modern UI with brass-themed design
+
+---
+
+## 📦 Installation
+
+### 1. **Clone the Repository**
+```bash
+git clone https://github.com/Priyanshu-Ghosh-unplugged/mindful-attend-track.git
+cd mindful-attend-track
+```
+
+### 2. **Install Dependencies**
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. **Environment Setup**
+- Configure your Supabase credentials in `src/integrations/supabase/client.ts` or via environment variables if required.
+- (Optional) Update branding assets in `src/assets/` and `public/`.
+
+### 4. **Run the App Locally**
+```bash
 npm run dev
+# or
+yarn dev
 ```
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b5daa3b3-f504-432c-b509-6e5ee0f61dfc) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## Events Table Schema
-
-The `events` table enables multi-event support and links all engagement, session, and participant data to a specific event.
-
-| Column      | Type      | Description                                 |
-|-------------|-----------|---------------------------------------------|
-| id          | UUID      | Primary key, unique event identifier        |
-| name        | TEXT      | Name of the event                          |
-| description | TEXT      | Optional description of the event           |
-| start_time  | TIMESTAMPTZ | Event start date/time                     |
-| end_time    | TIMESTAMPTZ | Event end date/time                       |
-| created_at  | TIMESTAMPTZ | Row creation timestamp                    |
-| updated_at  | TIMESTAMPTZ | Row update timestamp                      |
-
-### Relationships
-- **engagement_logs.event_id** → `events.id`
-- **sessions.event_id** → `events.id`
-- **participants.event_id** → `events.id`
-
-#### Entity Relationship Diagram (ERD)
-
-```
-[events] <--- [engagement_logs]
-   |             ^
-   |             |
-   +--- [sessions]
-   |
-   +--- [participants]
-```
-
-- Each engagement log, session, and participant is linked to a single event via `event_id`.
-- Deleting an event cascades to remove related logs, sessions, and participants (if ON DELETE CASCADE is set).
+The app will be available at [http://localhost:5173](http://localhost:5173) (or as specified by Vite).
 
 ---
 
-## MultiEvent UI: API Calls & Business Logic
+## 🧩 Project Structure
 
-The MultiEvent UI enables users to manage, compare, and analyze multiple events. All data operations use the Supabase client in React.
-
-### Event Operations
-
-#### 1. Fetch Events
-```js
-const { data } = await supabase.from('events').select('*').order('created_at', { ascending: false });
 ```
-
-#### 2. Create Event
-```js
-const { data, error } = await supabase.from('events').insert([
-  { name, description, start_time, end_time }
-]).select();
+├── src/
+│   ├── components/         # UI components (Navigation, Hero, Features, etc.)
+│   ├── contexts/           # React context providers (Auth, Theme)
+│   ├── hooks/              # Custom React hooks
+│   ├── integrations/       # Supabase and other integrations
+│   ├── lib/                # Utility functions
+│   ├── pages/              # Main app pages (Dashboard, Tracking, VRMetrics, etc.)
+│   └── assets/             # Images and static assets
+├── public/                 # Static files
+├── supabase/               # Supabase config and migrations
+├── package.json            # Project metadata and scripts
+└── README.md               # This file
 ```
-
-#### 3. Clone Event
-```js
-const { data, error } = await supabase.from('events').insert([
-  { name: orig.name + ' (Clone)', description: orig.description, start_time: orig.start_time, end_time: orig.end_time }
-]).select();
-```
-
-#### 4. Select Event
-- UI state: `selectedEventId` is set to the chosen event's `id`.
-- All engagement logs, sessions, and participants are filtered or created with this `event_id`.
-
-#### 5. Compare Events (Metrics)
-For each event in the comparison set:
-```js
-const { count: attendance } = await supabase.from('participants').select('id', { count: 'exact', head: true }).eq('event_id', eid);
-const { count: engagement } = await supabase.from('engagement_logs').select('id', { count: 'exact', head: true }).eq('event_id', eid);
-const { count: sessions } = await supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('event_id', eid);
-```
-
-### Business Logic
-- All engagement, session, and participant records must include the correct `event_id`.
-- The UI supports event creation, cloning, selection, and comparison.
-- Metrics are fetched live for each event and displayed in a comparison dashboard.
-- All API calls are performed using the Supabase JS client.
 
 ---
+
+## 🖥️ Key Pages & Dashboards
+
+- **/dashboard**: Main event dashboard with real-time stats
+- **/dynamic-scoring**: Engagement scoring, leaderboards, and scoring formula
+- **/tracking**: Multi-modal tracking dashboard (QR, NFC, browser, downloads)
+- **/vr-metrics**: Advanced VR analytics (gaze, interaction, device, sponsor)
+- **/chats**: Live chat with channels, AI, and user presence
+- **/sessions**: Session attendance and engagement
+- **/analytics**: Device usage, engagement trends, and more
+
+---
+
+## 🛠️ Technologies Used
+
+- **React** (Vite, TypeScript)
+- **Supabase** (auth, database, real-time)
+- **Tailwind CSS** (custom brass theme)
+- **Lucide Icons** (modern iconography)
+- **AI/ML** (simulated for demo, pluggable for production)
+
+---
+
+## 🧠 Advanced Capabilities
+
+- **Real-time data streaming** for live dashboards
+- **AI-powered moderation and engagement scoring**
+- **VR analytics**: gaze heatmaps, device stats, sponsor ROI
+- **Multi-device and multi-location support**
+- **Extensible architecture** for new tracking methods
+
+---
+
+## 📸 Screenshots
+
+> _Add screenshots/gifs here to showcase dashboards, VR analytics, and chat features._
+
+---
+
+## 🚦 Roadmap
+- [x] Multi-modal tracking (QR, NFC, browser, downloads)
+- [x] Dynamic scoring and leaderboards
+- [x] VR analytics and sponsor ROI
+- [x] Live chat with AI moderation
+- [ ] Integrate real AI/ML backend
+- [ ] Mobile app support
+- [ ] Exportable analytics reports
+- [ ] More integrations (Zoom, Teams, etc.)
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -am 'Add new feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a pull request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgements
+- [Supabase](https://supabase.com/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Lucide Icons](https://lucide.dev/)
+- All contributors and open-source libraries
+
+---
+
+<p align="center">
+  <b>Mindful Attend Track &mdash; Elevate your event analytics and engagement.</b>
+</p>

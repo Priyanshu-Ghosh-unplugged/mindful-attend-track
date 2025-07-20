@@ -1,71 +1,25 @@
+
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, Activity, TrendingUp, Clock, MapPin, Star } from "lucide-react";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useEngagementTracking } from "@/hooks/useEngagementTracking";
-
-interface Event {
-  id: string;
-  name: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  location: string;
-  status: string;
-  organizer_id: string;
-  created_at: string;
-  updated_at: string;
-}
 
 const Demo = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const { participants, recentLogs, loading } = useEngagementTracking(selectedEvent?.id);
-
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        setEvents(data);
-        setSelectedEvent(data[0]);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-    }
-  };
-
-  // Fallback demo data if no real events exist
   const demoData = {
-    event: selectedEvent || {
-      id: 'demo',
+    event: {
       name: "Tech Innovation Summit 2024",
-      start_date: new Date().toISOString(),
-      end_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+      date: "March 15-17, 2024",
       location: "San Francisco Convention Center",
-      description: "Annual technology conference",
-      status: "active",
-      organizer_id: "demo",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      participants: 847,
+      sessions: 24
     },
-    participants: participants.length > 0 ? participants : [
-      { id: '1', user_id: '1', engagement_score: 95, status: 'active', event_id: 'demo', attendance_score: 8, participation_score: 6, resource_score: 5, created_at: '', updated_at: '' },
-      { id: '2', user_id: '2', engagement_score: 87, status: 'active', event_id: 'demo', attendance_score: 6, participation_score: 4, resource_score: 3, created_at: '', updated_at: '' },
-      { id: '3', user_id: '3', engagement_score: 76, status: 'registered', event_id: 'demo', attendance_score: 5, participation_score: 2, resource_score: 2, created_at: '', updated_at: '' },
+    participants: [
+      { name: "Alex Chen", score: 95, status: "Active", sessions: 8 },
+      { name: "Sarah Johnson", score: 87, status: "Active", sessions: 6 },
+      { name: "Mike Rodriguez", score: 76, status: "Idle", sessions: 5 },
+      { name: "Emma Wilson", score: 91, status: "Active", sessions: 7 },
+      { name: "David Kim", score: 82, status: "Active", sessions: 4 }
     ],
     sessions: [
       { name: "AI & Machine Learning Keynote", participants: 432, engagement: 94 },
@@ -74,22 +28,6 @@ const Demo = () => {
       { name: "Networking Break", participants: 623, engagement: 73 }
     ]
   };
-
-  if (loading && selectedEvent) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="pt-20 px-4">
-          <div className="container mx-auto max-w-7xl flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brass mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading demo data...</p>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,17 +38,12 @@ const Demo = () => {
           
           {/* Header */}
           <div className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              {selectedEvent ? "Live Demo" : "Demo Preview"}
-            </Badge>
+            <Badge variant="secondary" className="mb-4">Live Demo</Badge>
             <h1 className="text-4xl font-bold font-poppins mb-4">
               Experience <span className="bg-gradient-brass bg-clip-text text-transparent">MindfulTrack</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              {selectedEvent 
-                ? "See real-time engagement tracking with live data from your events"
-                : "See how our platform tracks engagement in real-time with this interactive demo"
-              }
+              See how our platform tracks engagement in real-time with this interactive demo
             </p>
           </div>
 
@@ -122,7 +55,7 @@ const Demo = () => {
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {new Date(demoData.event.start_date).toLocaleDateString()} - {new Date(demoData.event.end_date).toLocaleDateString()}
+                    {demoData.event.date}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
@@ -132,11 +65,11 @@ const Demo = () => {
               </div>
               <div className="flex gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-brass">{demoData.participants.length}</div>
+                  <div className="text-2xl font-bold text-brass">{demoData.event.participants}</div>
                   <div className="text-sm text-muted-foreground">Participants</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-brass">{demoData.sessions.length}</div>
+                  <div className="text-2xl font-bold text-brass">{demoData.event.sessions}</div>
                   <div className="text-sm text-muted-foreground">Sessions</div>
                 </div>
               </div>
@@ -149,31 +82,27 @@ const Demo = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold flex items-center gap-2">
                   <Users className="w-5 h-5 text-brass" />
-                  {selectedEvent ? "Live Participants" : "Top Participants"}
+                  Top Participants
                 </h3>
-                <Badge variant="outline" className={selectedEvent ? "animate-pulse" : ""}>
-                  {selectedEvent ? "Live" : "Demo"}
-                </Badge>
+                <Badge variant="outline" className="animate-pulse">Live</Badge>
               </div>
               
               <div className="space-y-4">
                 {demoData.participants.map((participant, index) => (
-                  <div key={participant.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-background/50">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-brass rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                        {index + 1}
+                        {participant.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <div className="font-medium">Participant {index + 1}</div>
-                        <div className="text-sm text-muted-foreground">
-                          A: {participant.attendance_score} | P: {participant.participation_score} | R: {participant.resource_score}
-                        </div>
+                        <div className="font-medium">{participant.name}</div>
+                        <div className="text-sm text-muted-foreground">{participant.sessions} sessions attended</div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold text-brass">{participant.engagement_score}</div>
+                      <div className="font-semibold text-brass">{participant.score}</div>
                       <Badge 
-                        variant={participant.status === 'active' ? 'default' : 'secondary'}
+                        variant={participant.status === 'Active' ? 'default' : 'secondary'}
                         className="text-xs"
                       >
                         {participant.status}
@@ -227,17 +156,14 @@ const Demo = () => {
                 <h3 className="text-xl font-semibold">Ready to Get Started?</h3>
               </div>
               <p className="text-muted-foreground mb-6 max-w-md">
-                {selectedEvent 
-                  ? "This demo shows your real event data. Create more events to expand your tracking."
-                  : "This demo shows real-time engagement tracking. Create your own event to start tracking."
-                }
+                This demo shows real-time engagement tracking. Create your own event to start tracking.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="brass" size="lg" onClick={() => window.location.href = '/start-tracking'}>
-                  {selectedEvent ? "Create Another Event" : "Start Free Trial"}
+                <Button variant="brass" size="lg">
+                  Start Free Trial
                 </Button>
-                <Button variant="outline" size="lg" onClick={() => window.location.href = '/dashboard'}>
-                  View Dashboard
+                <Button variant="outline" size="lg">
+                  Schedule Demo Call
                 </Button>
               </div>
             </Card>

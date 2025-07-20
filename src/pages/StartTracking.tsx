@@ -8,14 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { CalendarDays, Users, MapPin, Clock, Play } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Navigate } from "react-router-dom";
 
 const StartTracking = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const [eventData, setEventData] = useState({
     name: "",
     description: "",
@@ -23,83 +19,15 @@ const StartTracking = () => {
     endDate: "",
     location: ""
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!eventData.name || !eventData.startDate || !eventData.endDate) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (new Date(eventData.startDate) >= new Date(eventData.endDate)) {
-      toast({
-        title: "Invalid Dates",
-        description: "End date must be after start date",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('events')
-        .insert([
-          {
-            name: eventData.name,
-            description: eventData.description,
-            start_date: eventData.startDate,
-            end_date: eventData.endDate,
-            location: eventData.location,
-            organizer_id: user.id,
-            status: 'upcoming'
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast({
-        title: "Event Created!",
-        description: `${eventData.name} has been created successfully`,
-      });
-
-      // Reset form
-      setEventData({
-        name: "",
-        description: "",
-        startDate: "",
-        endDate: "",
-        location: ""
-      });
-
-      // Navigate to dashboard after a short delay
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
-
-    } catch (error: any) {
-      console.error('Error creating event:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create event",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    console.log("Creating event:", eventData);
+    // TODO: Implement event creation
   };
 
   return (
@@ -129,14 +57,13 @@ const StartTracking = () => {
               
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="eventName">Event Name *</Label>
+                  <Label htmlFor="eventName">Event Name</Label>
                   <Input
                     id="eventName"
                     placeholder="e.g., Tech Conference 2024"
                     value={eventData.name}
                     onChange={(e) => setEventData({...eventData, name: e.target.value})}
                     required
-                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -148,31 +75,28 @@ const StartTracking = () => {
                     value={eventData.description}
                     onChange={(e) => setEventData({...eventData, description: e.target.value})}
                     rows={3}
-                    disabled={isSubmitting}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="startDate">Start Date *</Label>
+                    <Label htmlFor="startDate">Start Date</Label>
                     <Input
                       id="startDate"
                       type="datetime-local"
                       value={eventData.startDate}
                       onChange={(e) => setEventData({...eventData, startDate: e.target.value})}
                       required
-                      disabled={isSubmitting}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="endDate">End Date *</Label>
+                    <Label htmlFor="endDate">End Date</Label>
                     <Input
                       id="endDate"
                       type="datetime-local"
                       value={eventData.endDate}
                       onChange={(e) => setEventData({...eventData, endDate: e.target.value})}
                       required
-                      disabled={isSubmitting}
                     />
                   </div>
                 </div>
@@ -184,18 +108,11 @@ const StartTracking = () => {
                     placeholder="Event venue or online platform"
                     value={eventData.location}
                     onChange={(e) => setEventData({...eventData, location: e.target.value})}
-                    disabled={isSubmitting}
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  variant="brass" 
-                  className="w-full" 
-                  size="lg"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Creating Event..." : "Create Event & Start Tracking"}
+                <Button type="submit" variant="brass" className="w-full" size="lg">
+                  Create Event & Start Tracking
                 </Button>
               </form>
             </Card>

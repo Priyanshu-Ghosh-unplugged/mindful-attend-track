@@ -1,4 +1,3 @@
-
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,7 @@ const Demo = () => {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select('id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at')
         .order('created_at', { ascending: false })
         .limit(1);
 

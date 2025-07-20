@@ -1,4 +1,3 @@
-
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,10 @@ const MultiEvent = () => {
   // Fetch events
   useEffect(() => {
     async function fetchEvents() {
-      const { data } = await supabase.from("events").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("events")
+        .select("id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at")
+        .order("created_at", { ascending: false });
       if (data) setEvents(data);
     }
     fetchEvents();
@@ -83,8 +85,15 @@ const MultiEvent = () => {
   async function handleCreate() {
     setLoading(true);
     const { data, error } = await supabase.from("events").insert([
-      { ...newEvent, start_date: newEvent.start_time || null, end_date: newEvent.end_time || null }
-    ]).select();
+      { 
+        name: newEvent.name, 
+        description: newEvent.description, 
+        start_date: newEvent.start_time || null, 
+        end_date: newEvent.end_time || null,
+        location: 'TBD',
+        status: 'upcoming'
+      }
+    ]).select("id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at");
     setLoading(false);
     if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
     setNewEvent({ name: "", description: "", start_time: "", end_time: "" });
@@ -95,19 +104,31 @@ const MultiEvent = () => {
     const orig = events.find((e) => e.id === eid);
     if (!orig) return;
     const { data, error } = await supabase.from("events").insert([
-      { name: orig.name + " (Clone)", description: orig.description, start_date: orig.start_date, end_date: orig.end_date }
-    ]).select();
+      { 
+        name: orig.name + " (Clone)", 
+        description: orig.description, 
+        start_date: orig.start_date, 
+        end_date: orig.end_date,
+        location: orig.location,
+        status: orig.status
+      }
+    ]).select("id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at");
     setLoading(false);
     if (data && data[0]) setEvents((prev) => [data[0], ...prev]);
   }
 
   async function handleEditSave() {
     setLoading(true);
-    const { data, error } = await supabase.from("events").update(editValues).eq('id', editingEvent!.id).select();
+    const { data, error } = await supabase
+      .from("events")
+      .update(editValues)
+      .eq('id', editingEvent!.id)
+      .select("id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at");
     setLoading(false);
     if (data && data[0]) setEvents(prev => prev.map(e => e.id === editingEvent!.id ? data[0] : e));
     setEditingEvent(null);
   }
+  
   async function handleDelete(eid: string) {
     setLoading(true);
     await supabase.from("events").delete().eq('id', eid);
@@ -271,6 +292,7 @@ const MultiEvent = () => {
               </DialogContent>
             </Dialog>
           )}
+          
           {/* Delete Confirm Modal */}
           {deleteConfirm && (
             <Dialog open={!!deleteConfirm} onOpenChange={v => { if (!v) setDeleteConfirm(null); }}>

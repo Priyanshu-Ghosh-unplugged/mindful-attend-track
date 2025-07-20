@@ -1,4 +1,3 @@
-
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +23,14 @@ interface Event {
 interface Participant {
   id: string;
   user_id: string;
+  event_id: string;
   engagement_score: number;
   attendance_score: number;
   participation_score: number;
   resource_score: number;
   status: string;
+  created_at: string;
+  updated_at: string;
   profiles: {
     full_name: string;
     email: string;
@@ -101,7 +103,7 @@ const Dashboard = () => {
   const fetchEvents = async () => {
     const { data, error } = await supabase
       .from('events')
-      .select('*')
+      .select('id, name, description, start_date, end_date, location, status, organizer_id, created_at, updated_at')
       .eq('organizer_id', user?.id)
       .order('created_at', { ascending: false });
     
@@ -113,7 +115,7 @@ const Dashboard = () => {
     const { data, error } = await supabase
       .from('participants')
       .select(`
-        *,
+        id, user_id, event_id, engagement_score, attendance_score, participation_score, resource_score, status, created_at, updated_at,
         profiles:user_id (
           full_name,
           email

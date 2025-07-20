@@ -133,7 +133,7 @@ export const useEngagementTracking = (eventId?: string) => {
     try {
       const { data, error } = await supabase
         .from('participants')
-        .select('*')
+        .select('id, user_id, event_id, engagement_score, attendance_score, participation_score, resource_score, status, created_at, updated_at')
         .eq('event_id', eventId)
         .order('engagement_score', { ascending: false });
 
